@@ -11,18 +11,26 @@
                     <field name="bank_inter_key" />
                 </group>
             </xpath>
+            <xpath expr='//page[@name="acquirer_credentials"]' position='after'>
+                <page string="Boleto">
+                    <group name="acquirer_general">
+                        <field name="instrucoes"/>
+                        <field name="invoice_print"/>
+                    </group>
+                </page>
+            </xpath>
         </field>
     </record>
 
-    <record id="view_payment_iugu_transaction_form" model="ir.ui.view">
+  <!--   <record id="view_payment_iugu_transaction_form" model="ir.ui.view">
         <field name="name">view.payment.iugu.transaction.form</field>
         <field name="model">payment.transaction</field>
         <field name="inherit_id" ref="payment.transaction_form"/>
         <field name="arch" type="xml">
-            <field name="acquirer_reference" position="after">
+          < <field name="acquirer_reference" position="after">
                 <field name="invoice_url" readonly="1" widget="url"/>
             </field>
         </field>
-    </record>
+    </record>-->
 
 </odoo>

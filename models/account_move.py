@@ -3,7 +3,7 @@
 
 import re
 import iugu
-from datetime import date
+from datetime import date, timedelta
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
 from odoo import api, SUPERUSER_ID, _
@@ -90,8 +90,8 @@ class AccountMove(models.Model):
             raise ValidationError(msg)
 
     def send_information_to_iugu(self):
-        #if not self.payment_journal_id.receive_by_iugu:
-        if not self.payment_mode_id.display_name == 'BOLETO INTER':
+        if not self.payment_journal_id.receive_by_boletointer:
+        #if not self.payment_mode_id.display_name == 'BOLETO INTER':
             return
 
         for moveline in self.receivable_move_line_ids:
@@ -99,9 +99,9 @@ class AccountMove(models.Model):
 
             #iugu_p = self.env['payment.acquirer'].search([('provider', '=', 'iugu')])
             #_acquirer = self.env['payment.acquirer'].search([('provider', '=', 'transfer')])
-            iugu_p = self.env['payment.acquirer'].search([('provider', '=', 'transfer')])
+            payment_provider = self.env['payment.acquirer'].search([('provider', '=', 'apiboletointer')])
             transaction = self.env['payment.transaction'].sudo().create({
-                'acquirer_id': iugu_p.id,
+                'acquirer_id': payment_provider.id,
                 'amount': moveline.amount_residual,
                 'currency_id': moveline.move_id.currency_id.id,
                 'partner_id': moveline.partner_id.id,
@@ -130,12 +130,14 @@ class AccountMove(models.Model):
                 'order_id': transaction.reference,
             }
             #data = iugu_invoice_api.create(vals)
-            data = None
-            if not data:
-                data = {}
-                data['nossoNumero'] = 123
-                data['linhaDigitavel'] = 12345
-            #data = self._generate_bank_inter_boleto()
+            #data = None
+            #if not data:
+            #    data = {}
+            #    data['nossoNumero'] = 123
+            #    data['linhaDigitavel'] = 12345
+            data = self._generate_bank_inter_boleto()
+
+            #catch error to-do
             #if "errors" in data:
             if 0:
                 if isinstance(data['errors'], str):
@@ -154,20 +156,18 @@ class AccountMove(models.Model):
             })
             #transaction._set_transaction_pending()
             moveline.write({
-                'iugu_id': data['nossoNumero'] or '',
+                #'iugu_id': data['nossoNumero'] or '',
                 #'iugu_secure_payment_url': data['secure_url'],
-                'iugu_digitable_line': data['linhaDigitavel'] or '',
+                'boleto_digitable_line': data['linhaDigitavel'] or '',
                 #'iugu_barcode_url': data['bank_slip']['barcode'],
                 #'transaction_ids': transaction.id,
             })
             self.transaction_ids = [(6, 0, [transaction.id])]
-            #self.write({
-            #    'transaction_ids':[(4, [transaction.id])],
-            #})
 
         ###
 
     def generate_payment_transactions(self):
+        self.ensure_one()
         for item in self:
             item.send_information_to_iugu()
 
@@ -219,15 +219,38 @@ class AccountMove(models.Model):
                 )
             )
             #raise ValidationError(f"{moveline.partner_id.l10n_br_legal_name} {moveline.partner_id.l10n_br_cnpj_cpf} {moveline.partner_id.email} {moveline.partner_id.company_type} {moveline.partner_id.phone} {moveline.partner_id.street} {moveline.partner_id.l10n_br_district} {moveline.partner_id.city_id.name} {moveline.partner_id.state_id.code} {moveline.partner_id.zip} {moveline.partner_id.l10n_br_number} ")
-            _instructions = str(moveline.payment_mode_id.instrucoes).split('\n')
+            _instructions = str(self.invoice_payment_term_id.note).split('\n')
+            invoice_payment_term_id = self.invoice_payment_term_id
+            codigoMora = invoice_payment_term_id.interst_mode
+            mora_valor = invoice_payment_term_id.interst_value if codigoMora == 'VALORDIA' else 0
+            mora_taxa  = invoice_payment_term_id.interst_value if codigoMora == 'TAXAMENSAL' else 0
+            data_mm = (moveline.date_maturity +  timedelta(days=1)).strftime('%Y-%m-%d') if not codigoMora == 'ISENTO' else ''
+            codigoMulta = invoice_payment_term_id.fine_mode
+            multa_valor = invoice_payment_term_id.fine_value if codigoMulta == 'VALORFIXO' else 0
+            multa_taxa  = invoice_payment_term_id.fine_value if codigoMulta == 'PERCENTUAL' else 0
+            mora = dict(
+                codigoMora=codigoMora,
+                valor=mora_valor,
+                taxa=mora_taxa,
+                data=data_mm
+                )
+            multa = dict(
+                codigoMulta=codigoMulta,
+                valor=multa_valor,
+                taxa=multa_taxa,
+                data=data_mm
+                )
+
             slip = BoletoInter(
                 sender=myself,
                 #amount=moveline.amount_currency,
                 amount=moveline.amount_residual,
                 payer=payer,
-                issue_date=moveline.create_date,
-                due_date=moveline.date,
+                issue_date=moveline.date,
+                due_date=moveline.date_maturity,
                 identifier=moveline.move_name,
+                mora=mora,
+                multa=multa,
                 #identifier='999999999999999',
                 instructions=_instructions,
             )
@@ -236,14 +259,13 @@ class AccountMove(models.Model):
         return dados
 
     def _generate_bank_inter_boleto(self):
-        with ArquivoCertificado(self.payment_mode_id, 'w') as (key, cert):
+        payment_provider = self.env['payment.acquirer'].search([('provider', '=', 'apiboletointer')])
+        with ArquivoCertificado(payment_provider, 'w') as (key, cert):
             self.api = ApiInter(
                 cert=(cert, key),
-                conta_corrente=(self.payment_mode_id.fixed_journal_id.bank_account_id.acc_number +
-                                self.payment_mode_id.fixed_journal_id.bank_account_id.acc_number_dig)
+                conta_corrente=(self.payment_journal_id.bank_account_id.acc_number +
+                                self.payment_journal_id.bank_account_id.acc_number_dig)
             )
-            print(self.payment_mode_id.fixed_journal_id.bank_account_id.acc_number +
-                            self.payment_mode_id.fixed_journal_id.bank_account_id.acc_number_dig)
             data = self._generate_bank_inter_boleto_data()
             for item in data:
                 print(item._emissao_data())
@@ -251,21 +273,21 @@ class AccountMove(models.Model):
             # o pacote python tem error handle que retorna para a aplicação
         return resposta
 
-    def _gererate_bank_inter_api(self):
-        """ Realiza a conexão com o a API do banco inter"""
-        if self.payment_type == 'inbound':
-            return self._generate_bank_inter_boleto()
-        else:
-            raise NotImplementedError
+    #def _gererate_bank_inter_api(self):
+    #    """ Realiza a conexão com o a API do banco inter"""
+    #    if self.payment_type == 'inbound':
+    #        return self._generate_bank_inter_boleto()
+    #    else:
+    #        raise NotImplementedError
 
-    def generate_payment_file(self):
-        self.ensure_one()
-        if (self.payment_mode_id.fixed_journal_id.bank_account_id ==
-                self.env.ref('l10n_br_base.res_bank_077') and
-                self.payment_method_id.code == 'electronic'):
-            return self._gererate_bank_inter_api()
-        else:
-            return super().generate_payment_file()
+    #def generate_payment_file(self):
+    #    self.ensure_one()
+    #    if (self.payment_mode_id.fixed_journal_id.bank_account_id ==
+    #            self.env.ref('l10n_br_base.res_bank_077') and
+    #            self.payment_method_id.code == 'electronic'):
+    #        return self._gererate_bank_inter_api()
+    #    else:
+    #        return super().generate_payment_file()
 
 
 
@@ -275,7 +297,7 @@ class AccountMoveLine(models.Model):
     iugu_status = fields.Char(string="Status Iugu", default='pending', copy=False)
     iugu_id = fields.Char(string="ID Iugu", size=60, copy=False)
     iugu_secure_payment_url = fields.Char(string="URL de Pagamento", size=500, copy=False)
-    iugu_digitable_line = fields.Char(string="Linha Digitável", size=100, copy=False)
+    boleto_digitable_line = fields.Char(string="Linha Digitável", size=100, copy=False)
     iugu_barcode_url = fields.Char(string="Código de barras", size=100, copy=False)
 
     def _create_bank_tax_move(self, fees_amount):

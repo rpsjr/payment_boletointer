@@ -1,7 +1,13 @@
 # © 2019 Danimar Ribeiro
 # Part of OdooNext. See LICENSE file for full copyright and licensing details.
+try:
+    from erpbrasil.bank.inter.boleto import BoletoInter
+    from erpbrasil.bank.inter.api import ApiInter
+except ImportError:
+    _logger.error("Biblioteca erpbrasil.bank.inter não instalada")
 
-import iugu
+from .arquivo_certificado import ArquivoCertificado
+from datetime import timedelta
 from odoo import api, fields, models
 from odoo.exceptions import UserError
 import logging
@@ -28,22 +34,18 @@ class PaymentTransaction(models.Model):
         if self.acquirer_reference and self.pdf_boleto_id:
             return
 
-        order_id = self.payment_line_ids[0].order_id
-        self.payment_mode_id
-        with ArquivoCertificado(self.payment_mode_id, 'w') as (key, cert):
+        with ArquivoCertificado(self.acquirer_id, 'w') as (key, cert):
             self.api = ApiInter(
                 cert=(cert, key),
-                conta_corrente=(self.payment_mode_id.fixed_journal_id.bank_account_id.acc_number +
-                                self.payment_mode_id.fixed_journal_id.bank_account_id.acc_number_dig)
+                conta_corrente=(self.acquirer_id.journal_id.bank_account_id.acc_number +
+                                self.acquirer_id.journal_id.bank_account_id.acc_number_dig)
             )
             datas = self.api.boleto_pdf(self.acquirer_reference)
             self.pdf_boleto_id = self.env['ir.attachment'].create(
                 {
                     'name': (
-                        "Boleto %s" % self.bank_payment_line_id.display_name),
+                        "Boleto %s.pdf" % self.display_name),
                     'datas': datas,
-                    'datas_fname': ("boleto_%s.pdf" %
-                                    self.bank_payment_line_id.display_name),
                     'type': 'binary'
                 }
             )
@@ -61,14 +63,13 @@ class PaymentTransaction(models.Model):
             base_url = self.env['ir.config_parameter'].get_param(
                 'web.base.url')
             download_url = '/web/content/%s/%s?download=True' % (
-                str(boleto_id.id), boleto_id.name)
+                str(boleto_id.id), boleto_id.name.replace('/','_'))
 
             return {
                 "type": "ir.actions.act_url",
                 "url": str(base_url) + str(download_url),
                 "target": "new",
             }
-
 
     def cron_verify_transaction(self):
         documents = self.search([('state', 'in', ['draft', 'pending']), ], limit=50)
@@ -82,35 +83,47 @@ class PaymentTransaction(models.Model):
                     doc.id, str(e)), exc_info=True)
 
     def action_verify_transaction(self):
-        if self.acquirer_id.provider != 'iugu':
+        if self.acquirer_id.provider != 'apiboletointer':
             return
         if not self.acquirer_reference:
             raise UserError('Esta transação não foi enviada a nenhum gateway de pagamento')
-        token = self.env.company.iugu_api_token
-        iugu.config(token=token)
-        iugu_invoice_api = iugu.Invoice()
 
-        data = iugu_invoice_api.search(self.acquirer_reference)
-        if "errors" in data:
-            raise UserError(data['errors'])
-        if data.get('status', '') == 'paid' and self.state not in ('done', 'authorized'):
+        with ArquivoCertificado(self.acquirer_id, 'w') as (key, cert):
+            self.api = ApiInter(
+                cert=(cert, key),
+                conta_corrente=(self.acquirer_id.journal_id.bank_account_id.acc_number +
+                                self.acquirer_id.journal_id.bank_account_id.acc_number_dig)
+            )
+            data = self.api.boleto_recupera(self.acquirer_reference)
+
+        #EMABERTO, BAIXADO e VENCIDO e PAGO
+        if "errors" in data or not data:
+            raise UserError(data)
+        if data['situacao'] == 'EMABERTO' and self.state  in ('draft'):
+            self._set_transaction_pending()
+
+        if data['situacao'] == 'PAGO' and self.state not in ('done', 'authorized'):
             self._set_transaction_done()
             self._post_process_after_done()
-            if self.origin_move_line_id:
-                self.origin_move_line_id._create_bank_tax_move(
-                    (data.get('taxes_paid_cents') or 0) / 100)
-        else:
-            self.iugu_status = data['status']
+            #if self.origin_move_line_id:
+                #self.origin_move_line_id._create_bank_tax_move(
+                #    (data.get('taxes_paid_cents') or 0) / 100)
+        #else:
+            #self.iugu_status = data['status']
 
-    def cancel_transaction_in_iugu(self):
+    def cancel_transaction_in_inter(self):
         if not self.acquirer_reference:
-            raise UserError('Esta parcela não foi enviada ao IUGU')
-        token = self.env.company.iugu_api_token
-        iugu.config(token=token)
-        iugu_invoice_api = iugu.Invoice()
-        iugu_invoice_api.cancel(self.acquirer_reference)
+            raise UserError('Esta transação não foi enviada a nenhum gateway de pagamento')
+        with ArquivoCertificado(self.acquirer_id, 'w') as (key, cert):
+            self.api = ApiInter(
+                cert=(cert, key),
+                conta_corrente=(self.acquirer_id.journal_id.bank_account_id.acc_number +
+                                self.acquirer_id.journal_id.bank_account_id.acc_number_dig)
+            )
+            data = self.api.boleto_baixa(self.acquirer_reference,'SUBISTITUICAO')
+
 
     def action_cancel_transaction(self):
         self._set_transaction_cancel()
-        if self.acquirer_id.provider == 'iugu':
-            self.cancel_transaction_in_iugu()
+        if self.acquirer_id.provider == 'apiboletointer':
+            self.cancel_transaction_in_inter()

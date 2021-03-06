@@ -15,6 +15,10 @@ try:
 except ImportError:
     _logger.exception("Não é possível importar iugu")
 
+OPERATION_TYPE = [
+    ('1', 'Boleto'),
+]
+
 
 class PaymentAcquirer(models.Model):
     _inherit = "payment.acquirer"
@@ -24,3 +28,13 @@ class PaymentAcquirer(models.Model):
     bank_inter_cert = fields.Binary(string='Bank Inter Certificate')
 
     bank_inter_key = fields.Binary(string='Bank Inter Key')
+
+    instrucoes = fields.Text('Instruções de cobrança')
+
+    invoice_print = fields.Boolean(
+        'Gerar relatorio na conclusão da fatura?')
+
+    operation_type = fields.Selection(
+        selection=OPERATION_TYPE,
+        string='Tipo de Operação'
+    )

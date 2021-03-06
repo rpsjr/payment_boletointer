@@ -9,3 +9,5 @@ from . import account_journal
 from . import res_config_settings
 from . import payment_acquirer
 from . import res_bank
+from . import arquivo_certificado
+from . import account_payment_term

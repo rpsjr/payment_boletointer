@@ -16,15 +16,17 @@
                             <field name="date_maturity"/>
                             <field name="amount"/>
                             <field name="transaction_url" widget="url"/>
-                            <button name="action_verify_transaction" string="Verificar" type="object" 
+                            <button name="print_pdf_boleto" string="Boleto" type="object"
+                                class="btn btn-primary btn-sm" />
+                            <button name="action_verify_transaction" string="Verificar" type="object"
                                 class="btn btn-success btn-sm" />
-                            <button name="action_cancel_transaction" string="Cancelar" type="object" 
+                            <button name="action_cancel_transaction" string="Cancelar" type="object"
                                 class="btn btn-danger btn-sm" confirm="Confirma o cancelamento?" />
                         </tree>
                     </field>
                 </page>
             </page>
         </field>
-    </record> 
+    </record>
 
 </odoo>

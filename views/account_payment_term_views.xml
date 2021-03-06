@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <record id="view_payment_term_form_fine_interst_boleto" model="ir.ui.view">
+      <field name="name">account.payment.term.form.fine_interst_boleto</field>
+      <field name="model">account.payment.term</field>
+      <field name="inherit_id" ref="account.view_payment_term_form"/>
+      <field name="arch" type="xml">
+        <field name="company_id" position="after">
+                <field name="interst_mode"/>
+                <field name="interst_value"/>
+                <field name="fine_mode"/>
+                <field name="fine_value"/>
+        </field>
+      </field>
+  </record>
+
+</odoo>
+
+<!--
+<field name="note" position="after">
+    <field name="note_boleto" placeholder="Payment term explanation for the customer on boleto..."/>
+</field>
+
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <record id="view_payment_term_line_tree" model="ir.ui.view">
+      <field name="name">account.payment.term.line.tree.fine_interst</field>
+      <field name="model">account.payment.term.line</field>
+      <field name="inherit_id" ref="account.view_payment_term_line_tree"/>
+      <field name="arch" type="xml">
+        <field name="day_of_the_month" position="after">
+            <field name="interst_mode"/>
+            <field name="interst_value"/>
+            <field name="fine_mode"/>
+            <field name="fine_value"/>
+        </field>
+      </field>
+  </record>
+
+  <record id="view_payment_term_line_form" model="ir.ui.view">
+      <field name="name">account.payment.term.line.form.fine_interst</field>
+      <field name="model">account.payment.term.line</field>
+      <field name="inherit_id" ref="account.view_payment_term_line_form"/>
+      <field name="arch" type="xml">
+          <span class="o_form_label" position="after">
+           <field name="day_of_the_month" position="after">
+              <h2>Juros e Multas</h2>
+                <div colspan="2">
+                  <label for="interst_mode" />
+                  <field name="interst_mode" class="oe_inline"/>
+                  <label for="interst_value" />
+                  <field name="interst_value" class="oe_inline"/>
+                  <label for="fine_mode" />
+                  <field name="fine_mode" class="oe_inline"/>
+                  <label for="fine_value" />
+                  <field name="fine_value" class="oe_inline"/>
+                </div>
+           </field>
+        </span>
+      </field>
+  </record>
+
+</odoo>
+-->

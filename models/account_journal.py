@@ -1,12 +1,15 @@
-# © 2018 Danimar Ribeiro, Trustcode
-# Part of Trustcode. See LICENSE file for full copyright and licensing details.
+# Copyright 2020 KMEE
+# License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 from odoo import fields, models
-from odoo.exceptions import ValidationError
 
 
 class AccountJournal(models.Model):
+
     _inherit = 'account.journal'
 
-    receive_by_iugu = fields.Boolean(string="Receber pelo IUGU?")
+    receive_by_boletointer = fields.Boolean(string="Cobrança Banco Inter?")
 
+    bank_inter_cert = fields.Binary(string='Bank Inter Certificate')
+
+    bank_inter_key = fields.Binary(string='Bank Inter Key')
