@@ -66,10 +66,10 @@ class AccountMove(models.Model):
                 continue
             partner = invoice.partner_id.commercial_partner_id
             #if not self.env.company.iugu_api_token:
-            if not self.payment_mode_id.fixed_journal_id.bank_inter_cert:
-                errors.append('Configure o certificado de API')
-            if not self.payment_mode_id.fixed_journal_id.bank_inter_key:
-                errors.append('Configure a chave de API')
+            #if not self.payment_mode_id.fixed_journal_id.bank_inter_cert:
+            #    errors.append('Configure o certificado de API')
+            #if not self.payment_mode_id.fixed_journal_id.bank_inter_key:
+            #    errors.append('Configure a chave de API')
             if partner.is_company and not partner.l10n_br_legal_name:
                 errors.append('Destinatário - Razão Social')
             if not partner.street:
