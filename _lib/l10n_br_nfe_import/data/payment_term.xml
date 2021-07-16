@@ -1,8 +1,0 @@
-<odoo>
-
-    <record id="payment_term_for_import" model="account.payment.term">
-        <field name="name">Importado via xml</field>
-        <field name="active">False</field>
-    </record>
-
-</odoo>

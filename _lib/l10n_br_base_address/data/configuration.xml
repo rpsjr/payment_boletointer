@@ -1,5 +1,0 @@
-<odoo>
-
- <function name="install_default_country" model="res.partner"/>
-
-</odoo>
