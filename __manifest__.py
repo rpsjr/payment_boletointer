@@ -7,14 +7,14 @@
     'version': '13.0.2.0.0',
     'category': 'Finance',
     'sequence': 5,
-    'author': 'T',
+    'author': 'Trustcode, RPSJR',
     'license': 'OPL-1',
     'summary': """Realiza a integração com API Cobrança Banco Inter""",
     'website': 'https://www..com.br',
     'support': 'comercial@.com.br',
     'contributors': [
         'Danimar Ribeiro <danimaribeiro@gmail.com>',
-        'Raimundo'
+        'Raimundo Junior'
     ],
     'depends': [
         'account',
