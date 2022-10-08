@@ -29,7 +29,7 @@ class PaymentAcquirer(models.Model):
 
     bank_inter_key = fields.Binary(string='Bank Inter Key')
 
-    bank_inter_clientclientId = fields.Char(string='Bank Inter ClientId')
+    bank_inter_clientId = fields.Char(string='Bank Inter ClientId')
 
     bank_inter_clientSecret = fields.Char(string='Bank Inter ClientSecret')
 

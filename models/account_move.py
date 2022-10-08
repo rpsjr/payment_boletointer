@@ -261,7 +261,7 @@ class AccountMove(models.Model):
     def _generate_bank_inter_boleto(self):
         payment_provider = self.env['payment.acquirer'].search([('provider', '=', 'apiboletointer')])
         with ArquivoCertificado(payment_provider, 'w') as (key, cert):
-            self.api = ApiInter(payment_provider.bank_inter_clientclientId, payment_provider.bank_inter_clientSecret,
+            self.api = ApiInter(payment_provider.bank_inter_clientId, payment_provider.bank_inter_clientSecret,
                 cert=(cert, key),
                 conta_corrente=(self.payment_journal_id.bank_account_id.acc_number +
                                 self.payment_journal_id.bank_account_id.acc_number_dig)
