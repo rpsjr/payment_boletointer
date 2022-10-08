@@ -58,6 +58,7 @@ class PaymentTransaction(models.Model):
             return
 
         with ArquivoCertificado(self.acquirer_id, "w") as (key, cert):
+            payment_provider = self.env['payment.acquirer'].search([('provider', '=', 'apiboletointer')])
             self.api = ApiInter(payment_provider.bank_inter_clientId, payment_provider.bank_inter_clientSecret,
                 cert=(cert, key),
                 conta_corrente=(
