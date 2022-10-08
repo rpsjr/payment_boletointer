@@ -127,7 +127,7 @@ class PaymentTransaction(models.Model):
             raise UserError(
                 "Esta transação não foi enviada a nenhum gateway de pagamento"
             )
-
+        payment_provider = self.env['payment.acquirer'].search([('provider', '=', 'apiboletointer')]
         with ArquivoCertificado(self.acquirer_id, "w") as (key, cert):
             self.api = ApiInter(payment_provider.bank_inter_clientId, payment_provider.bank_inter_clientSecret,
                 cert=(cert, key),
@@ -158,6 +158,7 @@ class PaymentTransaction(models.Model):
             raise UserError(
                 "Esta transação não foi enviada a nenhum gateway de pagamento"
             )
+        payment_provider = self.env['payment.acquirer'].search([('provider', '=', 'apiboletointer')])
         with ArquivoCertificado(self.acquirer_id, "w") as (key, cert):
             self.api = ApiInter(payment_provider.bank_inter_clientId, payment_provider.bank_inter_clientSecret,
                 cert=(cert, key),
