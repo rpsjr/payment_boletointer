@@ -9,6 +9,8 @@
                 <group attrs="{'invisible': [('provider', '!=', 'apiboletointer')]}">
                     <field name="bank_inter_cert"/>
                     <field name="bank_inter_key" />
+                    <field name="bank_inter_clientclientId" />
+                    <field name="bank_inter_clientSecret" />
                 </group>
             </xpath>
             <xpath expr='//page[@name="acquirer_credentials"]' position='after'>

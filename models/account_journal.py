@@ -13,3 +13,7 @@ class AccountJournal(models.Model):
     bank_inter_cert = fields.Binary(string='Bank Inter Certificate')
 
     bank_inter_key = fields.Binary(string='Bank Inter Key')
+
+    bank_inter_clientclientId = fields.Binary(string='Bank Inter ClientId')
+
+    bank_inter_clientSecret = fields.Binary(string='Bank Inter ClientSecret')
