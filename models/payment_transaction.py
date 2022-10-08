@@ -58,7 +58,7 @@ class PaymentTransaction(models.Model):
             return
 
         with ArquivoCertificado(self.acquirer_id, "w") as (key, cert):
-            self.api = ApiInter(
+            self.api = ApiInter(payment_provider.bank_inter_clientclientId, payment_provider.bank_inter_clientSecret,
                 cert=(cert, key),
                 conta_corrente=(
                     self.acquirer_id.journal_id.bank_account_id.acc_number
@@ -128,7 +128,7 @@ class PaymentTransaction(models.Model):
             )
 
         with ArquivoCertificado(self.acquirer_id, "w") as (key, cert):
-            self.api = ApiInter(
+            self.api = ApiInter(payment_provider.bank_inter_clientclientId, payment_provider.bank_inter_clientSecret,
                 cert=(cert, key),
                 conta_corrente=(
                     self.acquirer_id.journal_id.bank_account_id.acc_number
@@ -158,7 +158,7 @@ class PaymentTransaction(models.Model):
                 "Esta transação não foi enviada a nenhum gateway de pagamento"
             )
         with ArquivoCertificado(self.acquirer_id, "w") as (key, cert):
-            self.api = ApiInter(
+            self.api = ApiInter(payment_provider.bank_inter_clientclientId, payment_provider.bank_inter_clientSecret,
                 cert=(cert, key),
                 conta_corrente=(
                     self.acquirer_id.journal_id.bank_account_id.acc_number
