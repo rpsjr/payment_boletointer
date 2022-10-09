@@ -65,8 +65,8 @@ class PaymentTransaction(models.Model):
                     self.acquirer_id.journal_id.bank_account_id.acc_number
                     + self.acquirer_id.journal_id.bank_account_id.acc_number_dig
                 ),
-                payment_provider.bank_inter_clientId,
-                payment_provider.bank_inter_clientSecret,
+                clientId=payment_provider.bank_inter_clientId,
+                clientSecret=payment_provider.bank_inter_clientSecret,
             )
             datas = self.api.boleto_pdf(self.acquirer_reference)
             if self._isBase64(datas):
@@ -137,8 +137,8 @@ class PaymentTransaction(models.Model):
                     self.acquirer_id.journal_id.bank_account_id.acc_number
                     + self.acquirer_id.journal_id.bank_account_id.acc_number_dig
                 ),
-                payment_provider.bank_inter_clientId,
-                payment_provider.bank_inter_clientSecret,
+                clientId=payment_provider.bank_inter_clientId,
+                clientSecret=payment_provider.bank_inter_clientSecret,
             )
             data = self.api.boleto_recupera(self.acquirer_reference)
 
@@ -170,10 +170,11 @@ class PaymentTransaction(models.Model):
                     self.acquirer_id.journal_id.bank_account_id.acc_number
                     + self.acquirer_id.journal_id.bank_account_id.acc_number_dig
                 ),
-                payment_provider.bank_inter_clientId,
-                payment_provider.bank_inter_clientSecret,
+                clientId=payment_provider.bank_inter_clientId,
+                clientSecret=payment_provider.bank_inter_clientSecret,
             )
             data = self.api.boleto_baixa(self.acquirer_reference, "SUBISTITUICAO")
+
 
     def action_cancel_transaction(self):
         self._set_transaction_cancel()
