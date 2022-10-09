@@ -59,8 +59,10 @@ class PaymentTransaction(models.Model):
 
         with ArquivoCertificado(self.acquirer_id, "w") as (key, cert):
             payment_provider = self.env['payment.acquirer'].search([('provider', '=', 'apiboletointer')])
-            self.api = ApiInter(payment_provider.bank_inter_clientId, payment_provider.bank_inter_clientSecret,
+            self.api = ApiInter(
                 cert=(cert, key),
+                payment_provider.bank_inter_clientId,
+                payment_provider.bank_inter_clientSecret,
                 conta_corrente=(
                     self.acquirer_id.journal_id.bank_account_id.acc_number
                     + self.acquirer_id.journal_id.bank_account_id.acc_number_dig
@@ -129,8 +131,10 @@ class PaymentTransaction(models.Model):
             )
         payment_provider = self.env['payment.acquirer'].search([('provider', '=', 'apiboletointer')])
         with ArquivoCertificado(self.acquirer_id, "w") as (key, cert):
-            self.api = ApiInter(payment_provider.bank_inter_clientId, payment_provider.bank_inter_clientSecret,
+            self.api = ApiInter(
                 cert=(cert, key),
+                payment_provider.bank_inter_clientId,
+                payment_provider.bank_inter_clientSecret,
                 conta_corrente=(
                     self.acquirer_id.journal_id.bank_account_id.acc_number
                     + self.acquirer_id.journal_id.bank_account_id.acc_number_dig
@@ -160,8 +164,10 @@ class PaymentTransaction(models.Model):
             )
         payment_provider = self.env['payment.acquirer'].search([('provider', '=', 'apiboletointer')])
         with ArquivoCertificado(self.acquirer_id, "w") as (key, cert):
-            self.api = ApiInter(payment_provider.bank_inter_clientId, payment_provider.bank_inter_clientSecret,
+            self.api = ApiInter(
                 cert=(cert, key),
+                payment_provider.bank_inter_clientId,
+                payment_provider.bank_inter_clientSecret,
                 conta_corrente=(
                     self.acquirer_id.journal_id.bank_account_id.acc_number
                     + self.acquirer_id.journal_id.bank_account_id.acc_number_dig
