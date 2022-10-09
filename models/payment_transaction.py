@@ -61,12 +61,12 @@ class PaymentTransaction(models.Model):
             payment_provider = self.env['payment.acquirer'].search([('provider', '=', 'apiboletointer')])
             self.api = ApiInter(
                 cert=(cert, key),
-                payment_provider.bank_inter_clientId,
-                payment_provider.bank_inter_clientSecret,
                 conta_corrente=(
                     self.acquirer_id.journal_id.bank_account_id.acc_number
                     + self.acquirer_id.journal_id.bank_account_id.acc_number_dig
                 ),
+                payment_provider.bank_inter_clientId,
+                payment_provider.bank_inter_clientSecret,
             )
             datas = self.api.boleto_pdf(self.acquirer_reference)
             if self._isBase64(datas):
@@ -133,12 +133,12 @@ class PaymentTransaction(models.Model):
         with ArquivoCertificado(self.acquirer_id, "w") as (key, cert):
             self.api = ApiInter(
                 cert=(cert, key),
-                payment_provider.bank_inter_clientId,
-                payment_provider.bank_inter_clientSecret,
                 conta_corrente=(
                     self.acquirer_id.journal_id.bank_account_id.acc_number
                     + self.acquirer_id.journal_id.bank_account_id.acc_number_dig
                 ),
+                payment_provider.bank_inter_clientId,
+                payment_provider.bank_inter_clientSecret,
             )
             data = self.api.boleto_recupera(self.acquirer_reference)
 
@@ -166,12 +166,12 @@ class PaymentTransaction(models.Model):
         with ArquivoCertificado(self.acquirer_id, "w") as (key, cert):
             self.api = ApiInter(
                 cert=(cert, key),
-                payment_provider.bank_inter_clientId,
-                payment_provider.bank_inter_clientSecret,
                 conta_corrente=(
                     self.acquirer_id.journal_id.bank_account_id.acc_number
                     + self.acquirer_id.journal_id.bank_account_id.acc_number_dig
                 ),
+                payment_provider.bank_inter_clientId,
+                payment_provider.bank_inter_clientSecret,
             )
             data = self.api.boleto_baixa(self.acquirer_reference, "SUBISTITUICAO")
 
