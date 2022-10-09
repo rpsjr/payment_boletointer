@@ -8,6 +8,8 @@ from datetime import timedelta
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
+from odoo.exceptions import ValidationError
+
 
 from .arquivo_certificado import ArquivoCertificado
 
@@ -69,6 +71,8 @@ class PaymentTransaction(models.Model):
                 clientSecret=payment_provider.bank_inter_clientSecret,
             )
             datas = self.api.boleto_pdf(self.acquirer_reference)
+            datas = json.loads(check_pdf.datas)
+            datas = datas["pdf"]
             if self._isBase64(datas):
                 self.pdf_boleto_id = self.env["ir.attachment"].create(
                     {
@@ -173,7 +177,7 @@ class PaymentTransaction(models.Model):
                 clientId=payment_provider.bank_inter_clientId,
                 clientSecret=payment_provider.bank_inter_clientSecret,
             )
-            data = self.api.boleto_baixa(self.acquirer_reference, "SUBISTITUICAO")
+            data = self.api.boleto_baixa(self.acquirer_reference, "SUBSTITUICAO")
 
 
     def action_cancel_transaction(self):
