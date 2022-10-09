@@ -5,6 +5,7 @@
 import base64
 import logging
 from datetime import timedelta
+import json
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
