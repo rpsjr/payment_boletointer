@@ -72,7 +72,7 @@ class PaymentTransaction(models.Model):
                 clientSecret=payment_provider.bank_inter_clientSecret,
             )
             datas = self.api.boleto_pdf(self.acquirer_reference)
-            datas = json.loads(check_pdf.datas)
+            datas = json.loads(datas)
             datas = datas["pdf"]
             if self._isBase64(datas):
                 self.pdf_boleto_id = self.env["ir.attachment"].create(
