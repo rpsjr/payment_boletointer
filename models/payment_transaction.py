@@ -10,6 +10,7 @@ import json
 from odoo import api, fields, models
 from odoo.exceptions import UserError
 from odoo.exceptions import ValidationError
+from time import sleep
 
 
 from .arquivo_certificado import ArquivoCertificado
@@ -117,6 +118,7 @@ class PaymentTransaction(models.Model):
             limit=50,
         )
         for doc in documents:
+            sleep(6)
             try:
                 doc.action_verify_transaction()
                 self.env.cr.commit()
