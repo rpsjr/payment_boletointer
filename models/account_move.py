@@ -162,7 +162,8 @@ class AccountMove(models.Model):
                 #'iugu_barcode_url': data['bank_slip']['barcode'],
                 #'transaction_ids': transaction.id,
             })
-            self.transaction_ids = [(6, 0, [transaction.id])]
+            #self.transaction_ids = [(6, 0, [transaction.id])]
+            self.transaction_ids = [(4, transaction.id, 0)]
 
         ###
 
