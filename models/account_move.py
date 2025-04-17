@@ -135,7 +135,7 @@ class AccountMove(models.Model):
             #    data = {}
             #    data['nossoNumero'] = 123
             #    data['linhaDigitavel'] = 12345
-            data = self._generate_bank_inter_boleto()
+            data = moveline._generate_bank_inter_boleto()
 
             #catch error to-do
             #if "errors" in data:
