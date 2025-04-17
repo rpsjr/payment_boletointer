@@ -135,7 +135,7 @@ class AccountMove(models.Model):
             #    data = {}
             #    data['nossoNumero'] = 123
             #    data['linhaDigitavel'] = 12345
-            data = moveline._generate_bank_inter_boleto()
+            data = self._generate_bank_inter_boleto(moveline)
 
             #catch error to-do
             #if "errors" in data:
@@ -180,7 +180,7 @@ class AccountMove(models.Model):
 
     #################  inter methods ###########
 
-    def _generate_bank_inter_boleto_data(self):
+    def _generate_bank_inter_boleto_data(self, moveline):
 
         dados = []
         myself = User(
@@ -195,70 +195,70 @@ class AccountMove(models.Model):
             ),
         )
         #raise ValidationError(f"{self.company_id.l10n_br_legal_name} {misc.punctuation_rm(self.company_id.l10n_br_cnpj_cpf)} {self.payment_mode_id.fixed_journal_id.bank_id.code_bc} {self.payment_mode_id.fixed_journal_id.bank_account_id.bra_number} {self.payment_mode_id.fixed_journal_id.bank_account_id.acc_number} {self.payment_mode_id.fixed_journal_id.bank_account_id.acc_number_dig} {self.payment_mode_id.fixed_journal_id.bank_id.name} ")
-        for moveline in self.receivable_move_line_ids:
+        #for moveline in self.receivable_move_line_ids:
         #if 1:
-            payer = User(
-                #name=moveline.partner_id.l10n_br_legal_name,
-                name=moveline.partner_id.l10n_br_legal_name or moveline.partner_id.name,
-                identifier=misc.punctuation_rm(
-                    moveline.partner_id.l10n_br_cnpj_cpf
-                ),
-                email=moveline.partner_id.email or '',
-                personType=(
-                    "FISICA" if moveline.partner_id.company_type == 'person'
-                    else 'JURIDICA'),
-                phone=misc.punctuation_rm(
-                    moveline.partner_id.phone).replace(" ", "")[2:],
-                address=UserAddress(
-                    streetLine1=moveline.partner_id.street or '',
-                    district=moveline.partner_id.l10n_br_district or '',
-                    city=moveline.partner_id.city_id.name or '',
-                    stateCode=moveline.partner_id.state_id.code or '',
-                    zipCode=misc.punctuation_rm(moveline.partner_id.zip),
-                    streetNumber=moveline.partner_id.l10n_br_number,
-                )
+        payer = User(
+            #name=moveline.partner_id.l10n_br_legal_name,
+            name=moveline.partner_id.l10n_br_legal_name or moveline.partner_id.name,
+            identifier=misc.punctuation_rm(
+                moveline.partner_id.l10n_br_cnpj_cpf
+            ),
+            email=moveline.partner_id.email or '',
+            personType=(
+                "FISICA" if moveline.partner_id.company_type == 'person'
+                else 'JURIDICA'),
+            phone=misc.punctuation_rm(
+                moveline.partner_id.phone).replace(" ", "")[2:],
+            address=UserAddress(
+                streetLine1=moveline.partner_id.street or '',
+                district=moveline.partner_id.l10n_br_district or '',
+                city=moveline.partner_id.city_id.name or '',
+                stateCode=moveline.partner_id.state_id.code or '',
+                zipCode=misc.punctuation_rm(moveline.partner_id.zip),
+                streetNumber=moveline.partner_id.l10n_br_number,
             )
-            #raise ValidationError(f"{moveline.partner_id.l10n_br_legal_name} {moveline.partner_id.l10n_br_cnpj_cpf} {moveline.partner_id.email} {moveline.partner_id.company_type} {moveline.partner_id.phone} {moveline.partner_id.street} {moveline.partner_id.l10n_br_district} {moveline.partner_id.city_id.name} {moveline.partner_id.state_id.code} {moveline.partner_id.zip} {moveline.partner_id.l10n_br_number} ")
-            _instructions = str(self.invoice_payment_term_id.note).split('\n')
-            invoice_payment_term_id = self.invoice_payment_term_id
-            codigoMora = invoice_payment_term_id.interst_mode
-            mora_valor = invoice_payment_term_id.interst_value if codigoMora == 'VALORDIA' else 0
-            mora_taxa  = invoice_payment_term_id.interst_value if codigoMora == 'TAXAMENSAL' else 0
-            data_mm = (moveline.date_maturity +  timedelta(days=1)).strftime('%Y-%m-%d') if not codigoMora == 'ISENTO' else ''
-            codigoMulta = invoice_payment_term_id.fine_mode
-            multa_valor = invoice_payment_term_id.fine_value if codigoMulta == 'VALORFIXO' else 0
-            multa_taxa  = invoice_payment_term_id.fine_value if codigoMulta == 'PERCENTUAL' else 0
-            mora = dict(
-                codigoMora=codigoMora,
-                valor=mora_valor,
-                taxa=mora_taxa,
-                data=data_mm
-                )
-            multa = dict(
-                codigoMulta=codigoMulta,
-                valor=multa_valor,
-                taxa=multa_taxa,
-                data=data_mm
-                )
+        )
+        #raise ValidationError(f"{moveline.partner_id.l10n_br_legal_name} {moveline.partner_id.l10n_br_cnpj_cpf} {moveline.partner_id.email} {moveline.partner_id.company_type} {moveline.partner_id.phone} {moveline.partner_id.street} {moveline.partner_id.l10n_br_district} {moveline.partner_id.city_id.name} {moveline.partner_id.state_id.code} {moveline.partner_id.zip} {moveline.partner_id.l10n_br_number} ")
+        _instructions = str(self.invoice_payment_term_id.note).split('\n')
+        invoice_payment_term_id = self.invoice_payment_term_id
+        codigoMora = invoice_payment_term_id.interst_mode
+        mora_valor = invoice_payment_term_id.interst_value if codigoMora == 'VALORDIA' else 0
+        mora_taxa  = invoice_payment_term_id.interst_value if codigoMora == 'TAXAMENSAL' else 0
+        data_mm = (moveline.date_maturity +  timedelta(days=1)).strftime('%Y-%m-%d') if not codigoMora == 'ISENTO' else ''
+        codigoMulta = invoice_payment_term_id.fine_mode
+        multa_valor = invoice_payment_term_id.fine_value if codigoMulta == 'VALORFIXO' else 0
+        multa_taxa  = invoice_payment_term_id.fine_value if codigoMulta == 'PERCENTUAL' else 0
+        mora = dict(
+            codigoMora=codigoMora,
+            valor=mora_valor,
+            taxa=mora_taxa,
+            data=data_mm
+            )
+        multa = dict(
+            codigoMulta=codigoMulta,
+            valor=multa_valor,
+            taxa=multa_taxa,
+            data=data_mm
+            )
 
-            slip = BoletoInter(
-                sender=myself,
-                #amount=moveline.amount_currency,
-                amount=moveline.amount_residual,
-                payer=payer,
-                issue_date=moveline.date,
-                due_date=moveline.date_maturity,
-                identifier=moveline.move_name,
-                mora=mora,
-                multa=multa,
-                #identifier='999999999999999',
-                instructions=_instructions,
-            )
-            #raise ValidationError(f"{moveline.amount_residual} {moveline.create_date} {moveline.date} {moveline.move_name} ")
-            dados.append(slip)
+        slip = BoletoInter(
+            sender=myself,
+            #amount=moveline.amount_currency,
+            amount=moveline.amount_residual,
+            payer=payer,
+            issue_date=moveline.date,
+            due_date=moveline.date_maturity,
+            identifier=moveline.move_name,
+            mora=mora,
+            multa=multa,
+            #identifier='999999999999999',
+            instructions=_instructions,
+        )
+        #raise ValidationError(f"{moveline.amount_residual} {moveline.create_date} {moveline.date} {moveline.move_name} ")
+        dados.append(slip)
         return dados
 
-    def _generate_bank_inter_boleto(self):
+    def _generate_bank_inter_boleto(self, moveline):
         payment_provider = self.env['payment.acquirer'].search([('provider', '=', 'apiboletointer')])
         with ArquivoCertificado(payment_provider, 'w') as (key, cert):
             self.api = ApiInter(
@@ -269,7 +269,7 @@ class AccountMove(models.Model):
                 clientId=payment_provider.bank_inter_clientId,
                 clientSecret=payment_provider.bank_inter_clientSecret,
             )
-            data = self._generate_bank_inter_boleto_data()
+            data = self._generate_bank_inter_boleto_data(moveline)
             for item in data:
                 print(item._emissao_data())
                 resposta = self.api.boleto_inclui(item._emissao_data())
