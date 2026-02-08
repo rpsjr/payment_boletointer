@@ -15,6 +15,7 @@
                             <field name="reference"/>
                             <field name="date_maturity"/>
                             <field name="amount"/>
+                            <field name="inter_status" readonly="1"/>
                             <field name="transaction_url" widget="url"/>
                             <button name="print_pdf_boleto" string="Boleto" type="object"
                                 class="btn btn-primary btn-sm" />
