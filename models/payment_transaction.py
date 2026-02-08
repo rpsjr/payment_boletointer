@@ -6,6 +6,7 @@ import base64
 import logging
 from datetime import timedelta
 import json
+import re
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
@@ -147,7 +148,13 @@ class PaymentTransaction(models.Model):
                 clientId=payment_provider.bank_inter_clientId,
                 clientSecret=payment_provider.bank_inter_clientSecret,
             )
-            data = self.api.boleto_recupera(self.acquirer_reference)
+            if re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', self.acquirer_reference):
+                data = self.api.boleto_recupera(self.acquirer_reference)
+            elif hasattr(self.api, '_find_uuid_from_code'):
+                uuid = self.api._find_uuid_from_code(self.acquirer_reference)
+                data = self.api.boleto_recupera(uuid)
+            else:
+                data = self.api.boleto_recupera(self.acquirer_reference)
 
         # EMABERTO, BAIXADO e VENCIDO e PAGO
         if "errors" in data or not data:
