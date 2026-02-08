@@ -159,10 +159,15 @@ class PaymentTransaction(models.Model):
         # EMABERTO, BAIXADO e VENCIDO e PAGO
         if "errors" in data or not data:
             raise UserError(data)
-        if data["situacao"] == "EMABERTO" and self.state in ("draft"):
+
+        situacao = data.get("situacao")
+        if "cobranca" in data and isinstance(data["cobranca"], dict):
+             situacao = data["cobranca"].get("situacao")
+
+        if situacao in ("EMABERTO", "A_RECEBER") and self.state in ("draft"):
             self._set_transaction_pending()
 
-        if data["situacao"] == "PAGO" and self.state not in ("done", "authorized"):
+        if situacao in ("PAGO", "RECEBIDO", "MARCADO_RECEBIDO") and self.state not in ("done", "authorized"):
             self._set_transaction_done()
             self._post_process_after_done()
             # if self.origin_move_line_id:
