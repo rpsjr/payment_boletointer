@@ -32,6 +32,22 @@ class PaymentTransaction(models.Model):
     origin_move_line_id = fields.Many2one("account.move.line")
     date_maturity = fields.Date(string="Data de Vencimento")
 
+    inter_status = fields.Selection([
+        ('EMABERTO', 'Em Aberto (V2)'),
+        ('A_RECEBER', 'A Receber'),
+        ('VENCIDO', 'Vencido (V2)'),
+        ('ATRASADO', 'Atrasado'),
+        ('PAGO', 'Pago (V2)'),
+        ('RECEBIDO', 'Recebido'),
+        ('MARCADO_RECEBIDO', 'Marcado como Recebido'),
+        ('FALHA_EMISSAO', 'Falha na Emissão'),
+        ('EM_PROCESSAMENTO', 'Em Processamento'),
+        ('PROTESTO', 'Protesto'),
+        ('BAIXADO', 'Baixado'),
+        ('CANCELADO', 'Cancelado'),
+        ('EXPIRADO', 'Expirado'),
+    ], string="Status Inter")
+
     pdf_boleto_id = fields.Many2one(
         comodel_name="ir.attachment", string="PDF Boleto", ondelete="cascade"
     )
@@ -163,8 +179,10 @@ class PaymentTransaction(models.Model):
         situacao = data.get("situacao")
         if "cobranca" in data and isinstance(data["cobranca"], dict):
              situacao = data["cobranca"].get("situacao")
+        
+        self.write({'inter_status': situacao})
 
-        if situacao in ("EMABERTO", "A_RECEBER") and self.state in ("draft"):
+        if situacao in ("EMABERTO", "A_RECEBER", "ATRASADO", "EM_PROCESSAMENTO", "PROTESTO") and self.state in ("draft"):
             self._set_transaction_pending()
 
         if situacao in ("PAGO", "RECEBIDO", "MARCADO_RECEBIDO") and self.state not in ("done", "authorized"):
@@ -175,6 +193,12 @@ class PaymentTransaction(models.Model):
             #    (data.get('taxes_paid_cents') or 0) / 100)
         # else:
         # self.iugu_status = data['status']
+        
+        if situacao == "FALHA_EMISSAO":
+            self._set_transaction_error(msg="Falha na emissão do boleto Inter")
+
+        if situacao in ("BAIXADO", "CANCELADO", "EXPIRADO"):
+            self._set_transaction_cancel()
 
     def cancel_transaction_in_inter(self):
         if not self.acquirer_reference:
