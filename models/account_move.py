@@ -58,6 +58,13 @@ class AccountMove(models.Model):
     payment_journal_id = fields.Many2one(
         'account.journal', string='Forma de pagamento')
 
+    boleto_inter_skip_generation = fields.Boolean(
+
+        string='Pular Geração Boleto Inter',
+        copy=False,
+        default=False
+    )
+
     def validate_data_iugu(self):
         errors = []
         for invoice in self:
@@ -175,9 +182,37 @@ class AccountMove(models.Model):
     def action_post(self):
         self.validate_data_iugu()
         result = super(AccountMove, self).action_post()
-        self.generate_payment_transactions()
+        if not self.boleto_inter_skip_generation:
+            self.generate_payment_transactions()
+        else:
+            self.boleto_inter_skip_generation = False
         #raise ValidationError('interrupção antes do post')
         return result
+
+    def button_draft(self):
+        if not self._context.get('skip_boleto_check'):
+            for move in self:
+                # Check for active Inter transactions
+                inter_txs = move.transaction_ids.filtered(lambda t: t.acquirer_id.provider == 'apiboletointer' and t.state not in ['cancel', 'error', 'done'])
+                if inter_txs:
+                    return {
+                        'name': _('Gerenciar Boletos Inter'),
+                        'type': 'ir.actions.act_window',
+                        'res_model': 'wizard.boleto.inter.confirmation',
+                        'view_mode': 'form',
+                        'target': 'new',
+                        'context': {'default_move_id': move.id},
+                    }
+        return super(AccountMove, self).button_draft()
+
+    def button_cancel(self):
+        for move in self:
+            move.boleto_inter_skip_generation = False
+            # Cancela transações pendentes vinculadas ao Banco Inter
+            for transaction in move.transaction_ids:
+                if transaction.state not in ('done', 'cancel', 'error') and transaction.acquirer_id.provider == 'apiboletointer':
+                    transaction.action_cancel_transaction()
+        return super(AccountMove, self).button_cancel()
 
     #################  inter methods ###########
 

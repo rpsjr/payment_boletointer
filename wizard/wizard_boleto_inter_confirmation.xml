@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="wizard_boleto_inter_confirmation_view_form" model="ir.ui.view">
+        <field name="name">wizard.boleto.inter.confirmation.view.form</field>
+        <field name="model">wizard.boleto.inter.confirmation</field>
+        <field name="arch" type="xml">
+            <form string="Confirmar Ação Boletos Inter">
+                <group>
+                    <field name="move_id" invisible="1"/>
+                    <field name="action_type" widget="radio"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" string="Confirmar" type="object" class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>
