@@ -156,18 +156,31 @@ class AccountMove(models.Model):
                         for x in data['errors'].items()])
                 raise UserError(msg)
 
+            # Safe extraction of nested data
+            nosso_numero = data.get('nossoNumero')
+            if not nosso_numero and 'boleto' in data:
+                nosso_numero = data['boleto'].get('nossoNumero')
+
+            linha_digitavel = data.get('linhaDigitavel')
+            if not linha_digitavel and 'boleto' in data:
+                linha_digitavel = data['boleto'].get('linhaDigitavel')
+
+            pix_copia_cola = data.get('pixCopiaECola')
+            if not pix_copia_cola and 'pix' in data:
+                pix_copia_cola = data['pix'].get('pixCopiaECola')
+
             transaction.write({
                 #'acquirer_reference': data['id'],
-                'acquirer_reference': data['nossoNumero'] or '',
+                'acquirer_reference': nosso_numero or '',
                 #'transaction_url': data['secure_url'],
-                'boleto_pix_code': data['pixCopiaECola'] or '',
+                'boleto_pix_code': pix_copia_cola or '',
             })
             #transaction._set_transaction_pending()
             moveline.write({
                 #'iugu_id': data['nossoNumero'] or '',
                 #'iugu_secure_payment_url': data['secure_url'],
-                'boleto_digitable_line': data['linhaDigitavel'] or '',
-                'boleto_pix_code': data['pixCopiaECola'] or '',
+                'boleto_digitable_line': linha_digitavel or '',
+                'boleto_pix_code': pix_copia_cola or '',
                 #'iugu_barcode_url': data['bank_slip']['barcode'],
                 #'transaction_ids': transaction.id,
             })
