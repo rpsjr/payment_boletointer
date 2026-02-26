@@ -177,6 +177,16 @@ class PaymentTransaction(models.Model):
         if "errors" in data or not data:
             raise UserError(data)
 
+        # Capture PIX data if available and missing
+        pix_code = data.get('pixCopiaECola')
+        if not pix_code and 'pix' in data:
+            pix_code = data['pix'].get('pixCopiaECola')
+
+        if pix_code:
+            self.write({'boleto_pix_code': pix_code})
+            if self.origin_move_line_id:
+                self.origin_move_line_id.write({'boleto_pix_code': pix_code})
+
         situacao = data.get("situacao")
         if "cobranca" in data and isinstance(data["cobranca"], dict):
              situacao = data["cobranca"].get("situacao")
@@ -224,3 +234,17 @@ class PaymentTransaction(models.Model):
         self._set_transaction_cancel()
         if self.acquirer_id.provider == "apiboletointer":
             self.cancel_transaction_in_inter()
+
+    @api.model
+    def _update_old_transactions_pix(self):
+        """ Busca e atualiza boletos antigos sem PIX no update do módulo """
+        transactions = self.search([
+            ('acquirer_id.provider', '=', 'apiboletointer'),
+            ('boleto_pix_code', '=', False),
+            ('state', 'in', ['draft', 'pending', 'authorized'])
+        ], limit=50)
+        for tx in transactions:
+            try:
+                tx.action_verify_transaction()
+            except Exception:
+                continue

@@ -4,7 +4,7 @@
 
 {
     'name': 'Cobrança Banco Inter',
-    'version': '13.0.2.3.0',
+    'version': '13.0.2.4.0',
     'category': 'Finance',
     'sequence': 5,
     'author': 'Trustcode, RPSJR',
@@ -38,5 +38,6 @@
         'wizard/wizard_iugu.xml',
         'wizard/wizard_new_payment.xml',
         'wizard/wizard_boleto_inter_confirmation.xml',
+        'data/update_old_pix_data.xml',
     ],
 }
