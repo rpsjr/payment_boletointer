@@ -59,6 +59,15 @@
                         if (pixBox &amp;&amp; container) {
                             container.prepend(pixBox);
                         }
+                        
+                        // Ocultar mensagem padrão de "aguardando aprovação" do Odoo
+                        // Esta mensagem costuma confundir o usuário em boletos/pix
+                        var alerts = document.querySelectorAll('.alert.alert-info, .alert.alert-warning');
+                        alerts.forEach(function(alert) {
+                            if (alert.textContent.includes("aguardando por aprovação") || alert.textContent.includes("waiting for approval")) {
+                                alert.style.display = 'none';
+                            }
+                        });
                     });
                 </script>
             </t>

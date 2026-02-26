@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data noupdate="1">
+    <data noupdate="0">
         <record id="payment_acquirer_apiboletointer" model="payment.acquirer">
             <field name="name">Boleto Inter</field>
             <field name="image_128" type="base64" file="payment_boletointer/static/src/img/320px-Bancointer_oficial.png"/>
