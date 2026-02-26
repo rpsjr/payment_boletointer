@@ -1,58 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <template id="portal_invoice_page_inherit" inherit_id="account.portal_invoice_page" name="Invoice Portal Boleto Inter">
-        <xpath expr="//div[@id='invoice_content']" position="before">
+        <xpath expr="//div[@id='invoice_content']" position="inside">
             <t t-set="inter_txs" t-value="invoice.transaction_ids.filtered(lambda t: t.acquirer_id.provider == 'apiboletointer' and t.state not in ['cancel', 'error', 'done'])"/>
             <t t-if="inter_txs">
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header bg-primary text-white">
-                                <h4 class="mb-0">Pagamento via PIX (Banco Inter)</h4>
-                            </div>
-                            <div class="card-body">
-                                <t t-foreach="inter_txs" t-as="tx">
-                                    <div class="row align-items-center mb-3">
-                                        <div class="col-md-3 text-center">
-                                            <t t-if="tx.boleto_pix_code">
-                                                <img t-att-src="'/report/barcode/?type=QR&amp;value=%s&amp;width=200&amp;height=200' % tx.boleto_pix_code"
-                                                     alt="QR Code PIX"
-                                                     class="img-fluid border p-2"
-                                                     style="max-width: 200px;"/>
-                                            </t>
-                                            <t t-else="">
-                                                <div class="alert alert-warning">QR Code Indisponível</div>
-                                            </t>
-                                        </div>
-                                        <div class="col-md-9">
-                                            <h5>Vencimento: <span t-field="tx.date_maturity"/> | Valor: <span t-field="tx.amount" t-options='{"widget": "monetary", "display_currency": tx.currency_id}'/></h5>
-
-                                            <t t-if="tx.boleto_pix_code">
-                                                <p class="text-muted mb-1">Escaneie o QR Code ao lado com o app do seu banco ou use o código "Copia e Cola" abaixo:</p>
-                                                <div class="input-group mb-3">
-                                                    <input type="text" class="form-control" t-att-value="tx.boleto_pix_code" readonly="readonly" t-att-id="'pix-code-%s' % tx.id"/>
-                                                    <div class="input-group-append">
-                                                        <button class="btn btn-outline-secondary" type="button" t-att-onclick="'var copyText = document.getElementById(\'pix-code-%s\'); copyText.select(); document.execCommand(\'copy\'); alert(\'Código PIX copiado!\');' % tx.id">Copiar</button>
-                                                    </div>
-                                                </div>
-                                            </t>
-
-                                            <div t-if="tx.acquirer_reference">
-                                                <small class="text-muted">Nosso Número: <span t-field="tx.acquirer_reference"/></small>
-                                            </div>
-                                            <div t-if="tx.acquirer_reference">
-                                                <a class="btn btn-sm btn-info mt-2" t-att-href="'/boleto/inter/pdf/%s' % tx.id" target="_blank">
-                                                    <i class="fa fa-file-pdf-o"></i> Baixar Boleto PDF
-                                                </a>
-                                            </div>
-                                        </div>
+                <div id="pix_payment_box" class="mb-4 border rounded overflow-hidden shadow-sm" style="border-color: #dee2e6 !important;">
+                    <div class="bg-primary text-white p-2 px-3 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="fa fa-qrcode mr-2"></i>Pague agora via PIX (Banco Inter)</h6>
+                        <span class="badge badge-light text-primary small">Aprovação Imediata</span>
+                    </div>
+                    <div class="p-3 bg-white">
+                        <t t-foreach="inter_txs" t-as="tx">
+                            <div class="row align-items-center no-gutters">
+                                <div class="col-auto mr-3">
+                                    <t t-if="tx.boleto_pix_code">
+                                        <img t-att-src="'/report/barcode/?type=QR&amp;value=%s&amp;width=120&amp;height=120' % tx.boleto_pix_code"
+                                             alt="QR Code PIX"
+                                             class="img-fluid border bg-white"
+                                             style="max-width: 100px;"/>
+                                    </t>
+                                    <t t-else="">
+                                        <div class="text-warning small text-center border p-2" style="width: 100px;">QR Code Indisponível</div>
+                                    </t>
+                                </div>
+                                <div class="col">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-baseline mb-1">
+                                        <span class="font-weight-bold text-dark small">Vencimento: <span t-field="tx.date_maturity"/></span>
+                                        <span class="h5 font-weight-bold text-primary mb-0"><span t-field="tx.amount" t-options='{"widget": "monetary", "display_currency": tx.currency_id}'/></span>
                                     </div>
-                                    <hr t-if="not tx_last"/>
-                                </t>
+                                    
+                                    <t t-if="tx.boleto_pix_code">
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" class="form-control form-control-sm border-right-0 bg-light" t-att-value="tx.boleto_pix_code" readonly="readonly" t-att-id="'pix-code-%s' % tx.id" style="font-family: monospace; font-size: 0.7rem;"/>
+                                            <div class="input-group-append">
+                                                <button class="btn btn-primary btn-sm" type="button" t-att-onclick="'var copyText = document.getElementById(\'pix-code-%s\'); copyText.select(); document.execCommand(\'copy\'); alert(\'Código PIX copiado!\');' % tx.id">
+                                                    <i class="fa fa-copy"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </t>
+                                    
+                                    <div class="mt-2 d-flex justify-content-between align-items-center">
+                                        <small class="text-muted" t-if="tx.acquirer_reference">Ref: <span t-field="tx.acquirer_reference"/></small>
+                                        <a t-if="tx.acquirer_reference" class="btn btn-link btn-sm p-0 text-info font-weight-bold" t-att-href="'/boleto/inter/pdf/%s' % tx.id" target="_blank" style="font-size: 0.75rem;">
+                                            <i class="fa fa-file-pdf-o"></i> Baixar Boleto PDF
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                            <hr t-if="not tx_last" class="my-2"/>
+                        </t>
                     </div>
                 </div>
+                <script type="text/javascript">
+                    document.addEventListener("DOMContentLoaded", function() {
+                        var pixBox = document.getElementById('pix_payment_box');
+                        var container = document.getElementById('invoice_content');
+                        if (pixBox &amp;&amp; container) {
+                            container.prepend(pixBox);
+                        }
+                    });
+                </script>
             </t>
         </xpath>
     </template>
