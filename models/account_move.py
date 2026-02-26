@@ -160,12 +160,14 @@ class AccountMove(models.Model):
                 #'acquirer_reference': data['id'],
                 'acquirer_reference': data['nossoNumero'] or '',
                 #'transaction_url': data['secure_url'],
+                'boleto_pix_code': data['pixCopiaECola'] or '',
             })
             #transaction._set_transaction_pending()
             moveline.write({
                 #'iugu_id': data['nossoNumero'] or '',
                 #'iugu_secure_payment_url': data['secure_url'],
                 'boleto_digitable_line': data['linhaDigitavel'] or '',
+                'boleto_pix_code': data['pixCopiaECola'] or '',
                 #'iugu_barcode_url': data['bank_slip']['barcode'],
                 #'transaction_ids': transaction.id,
             })
@@ -337,6 +339,7 @@ class AccountMoveLine(models.Model):
     iugu_id = fields.Char(string="ID Iugu", size=60, copy=False)
     iugu_secure_payment_url = fields.Char(string="URL de Pagamento", size=500, copy=False)
     boleto_digitable_line = fields.Char(string="Linha Digitável", size=100, copy=False)
+    boleto_pix_code = fields.Char(string="Pix Copia e Cola", size=1024, copy=False)
     iugu_barcode_url = fields.Char(string="Código de barras", size=100, copy=False)
 
     def _create_bank_tax_move(self, fees_amount):

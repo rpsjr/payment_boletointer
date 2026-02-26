@@ -31,6 +31,7 @@ class PaymentTransaction(models.Model):
     transaction_url = fields.Char(string="Url de Pagamento", size=256)
     origin_move_line_id = fields.Many2one("account.move.line")
     date_maturity = fields.Date(string="Data de Vencimento")
+    boleto_pix_code = fields.Char(string="Pix Copia e Cola", size=1024, copy=False)
 
     inter_status = fields.Selection([
         ('EMABERTO', 'Em Aberto (V2)'),
@@ -179,7 +180,7 @@ class PaymentTransaction(models.Model):
         situacao = data.get("situacao")
         if "cobranca" in data and isinstance(data["cobranca"], dict):
              situacao = data["cobranca"].get("situacao")
-        
+
         self.write({'inter_status': situacao})
 
         if situacao in ("EMABERTO", "A_RECEBER", "ATRASADO", "EM_PROCESSAMENTO", "PROTESTO") and self.state in ("draft"):
@@ -193,7 +194,7 @@ class PaymentTransaction(models.Model):
             #    (data.get('taxes_paid_cents') or 0) / 100)
         # else:
         # self.iugu_status = data['status']
-        
+
         if situacao == "FALHA_EMISSAO":
             self._set_transaction_error(msg="Falha na emissão do boleto Inter")
 

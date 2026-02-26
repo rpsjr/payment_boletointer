@@ -1,35 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- <template id="portal_invoice_page_inherit" inherit_id="account.portal_invoice_report" name="Invoice Portal">
-        <xpath expr="//div[@id='total']" position="after">
-            <h4><b>Vencimentos</b></h4>
-            <hr />
-            <table class="table table-condensed">
-                <thead>
-                    <tr>
-                        <th>Situação</th>
-                        <th>Data de Vencimento</th>
-                        <th class="text-right">Valor</th>
-                        <th class="text-right">Link para pagamento</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr t-foreach="invoice.receivable_move_line_ids" t-as="l">
-                        <td>
-                            <t t-if="l.reconciled">
-                                <span>Pago</span>
-                            </t>
-                            <t t-else="">
-                                <span>Aguardando pagamento</span>
-                            </t>
-                        </td>
-                        <td><span t-field="l.date_maturity" /></td>
-                        <td class="text-right"><span t-field="l.debit" /></td>
-                        <td class="text-right"><a t-att-href="l.iugu_secure_payment_url" t-field="l.iugu_secure_payment_url" target="_blank"></a></td>
-                    </tr>
-                </tbody>
-            </table>
-        </xpath>
-    </template> -->
+    <template id="portal_invoice_page_inherit" inherit_id="account.portal_invoice_page" name="Invoice Portal Boleto Inter">
+        <xpath expr="//div[@id='invoice_content']" position="before">
+            <t t-set="inter_txs" t-value="invoice.transaction_ids.filtered(lambda t: t.acquirer_id.provider == 'apiboletointer' and t.state not in ['cancel', 'error', 'done'])"/>
+            <t t-if="inter_txs">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h4 class="mb-0">Pagamento via PIX (Banco Inter)</h4>
+                            </div>
+                            <div class="card-body">
+                                <t t-foreach="inter_txs" t-as="tx">
+                                    <div class="row align-items-center mb-3">
+                                        <div class="col-md-3 text-center">
+                                            <t t-if="tx.boleto_pix_code">
+                                                <img t-att-src="'/report/barcode/?type=QR&amp;value=%s&amp;width=200&amp;height=200' % tx.boleto_pix_code"
+                                                     alt="QR Code PIX"
+                                                     class="img-fluid border p-2"
+                                                     style="max-width: 200px;"/>
+                                            </t>
+                                            <t t-else="">
+                                                <div class="alert alert-warning">QR Code Indisponível</div>
+                                            </t>
+                                        </div>
+                                        <div class="col-md-9">
+                                            <h5>Vencimento: <span t-field="tx.date_maturity"/> | Valor: <span t-field="tx.amount" t-options='{"widget": "monetary", "display_currency": tx.currency_id}'/></h5>
 
+                                            <t t-if="tx.boleto_pix_code">
+                                                <p class="text-muted mb-1">Escaneie o QR Code ao lado com o app do seu banco ou use o código "Copia e Cola" abaixo:</p>
+                                                <div class="input-group mb-3">
+                                                    <input type="text" class="form-control" t-att-value="tx.boleto_pix_code" readonly="readonly" t-att-id="'pix-code-%s' % tx.id"/>
+                                                    <div class="input-group-append">
+                                                        <button class="btn btn-outline-secondary" type="button" t-att-onclick="'var copyText = document.getElementById(\'pix-code-%s\'); copyText.select(); document.execCommand(\'copy\'); alert(\'Código PIX copiado!\');' % tx.id">Copiar</button>
+                                                    </div>
+                                                </div>
+                                            </t>
+
+                                            <div t-if="tx.acquirer_reference">
+                                                <small class="text-muted">Nosso Número: <span t-field="tx.acquirer_reference"/></small>
+                                            </div>
+                                            <div t-if="tx.acquirer_reference">
+                                                <a class="btn btn-sm btn-info mt-2" t-att-href="'/payment/boleto/s2s/create_json_3ds?acquirer_id=%s&amp;acquirer_reference=%s' % (tx.acquirer_id.id, tx.acquirer_reference)" target="_blank">
+                                                    <i class="fa fa-file-pdf-o"></i> Baixar Boleto PDF
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <hr t-if="not tx_last"/>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </xpath>
+    </template>
 </odoo>
