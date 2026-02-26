@@ -6,6 +6,16 @@
             <field name="image_128" type="base64" file="payment_boletointer/static/src/img/320px-Bancointer_oficial.png"/>
             <field name="provider">apiboletointer</field>
             <field name="company_id" ref="base.main_company"/>
+            <field name="pending_msg"><![CDATA[
+<span>Boleto emitido com sucesso!</span><br/>
+<span>Para aprovação imediata, pague via PIX.</span>
+]]></field>
+            <field name="done_msg"><![CDATA[
+<span>Pagamento confirmado!</span>
+]]></field>
+            <field name="cancel_msg"><![CDATA[
+<span>Pagamento cancelado.</span>
+]]></field>
             <!--<field name="view_template_id" ref="paypal_form"/> -->
         </record>
 
