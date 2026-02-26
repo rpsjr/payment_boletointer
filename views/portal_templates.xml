@@ -41,7 +41,7 @@
                                                 <small class="text-muted">Nosso Número: <span t-field="tx.acquirer_reference"/></small>
                                             </div>
                                             <div t-if="tx.acquirer_reference">
-                                                <a class="btn btn-sm btn-info mt-2" t-att-href="'/payment/boleto/s2s/create_json_3ds?acquirer_id=%s&amp;acquirer_reference=%s' % (tx.acquirer_id.id, tx.acquirer_reference)" target="_blank">
+                                                <a class="btn btn-sm btn-info mt-2" t-att-href="'/boleto/inter/pdf/%s' % tx.id" target="_blank">
                                                     <i class="fa fa-file-pdf-o"></i> Baixar Boleto PDF
                                                 </a>
                                             </div>

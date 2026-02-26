@@ -1,34 +1,43 @@
 # © 2018 Danimar Ribeiro, Trustcode
 # Part of Trustcode. See LICENSE file for full copyright and licensing details.
 
-import pprint
 import logging
 from odoo import http, SUPERUSER_ID
 from odoo.http import request
 
 _logger = logging.getLogger(__name__)
 
-INVOICE_CREATED = 'invoice.created'
-INVOICE_CHANGED = 'invoice.status_changed'
-INVOICE_DUE = 'invoice.due'
 
+class InterController(http.Controller):
 
-class IuguController(http.Controller):
+    @http.route('/boleto/inter/pdf/<int:transaction_id>', type='http', auth="public", website=True)
+    def boleto_inter_pdf(self, transaction_id, **kw):
+        transaction = request.env['payment.transaction'].sudo().browse(transaction_id)
 
-    @http.route(
-        '/iugu/webhook', type='http', auth="none",
-        methods=['GET', 'POST'], csrf=False)
-    def iugu_webhook(self, **post):
-        _logger.info('iugu post-data: %s' % pprint.pformat(post))
-        iugu_id = post['data[id]']
-        event = post['event']
+        if not transaction.exists() or transaction.acquirer_id.provider != 'apiboletointer':
+            return request.not_found()
 
-        if event == INVOICE_CHANGED:
-            move_line = request.env['account.move.line'].with_user(SUPERUSER_ID).search(
-                [('iugu_id', '=', iugu_id)])
-            move_line.action_verify_iugu_payment()
-        if event == INVOICE_DUE:
-            move_line = request.env['account.move.line'].with_user(SUPERUSER_ID).search(
-                [('iugu_id', '=', iugu_id)])
-            move_line.action_notify_due_payment()
-        return "ok"
+        try:
+            transaction.generate_pdf_boleto()
+
+            if not transaction.pdf_boleto_id:
+                 return request.not_found()
+
+            pdf_content = transaction.pdf_boleto_id.datas
+            if not pdf_content:
+                 return request.not_found()
+
+            import base64
+            pdf_content = base64.b64decode(pdf_content)
+
+            headers = [
+                ('Content-Type', 'application/pdf'),
+                ('Content-Length', len(pdf_content)),
+                ('Content-Disposition', 'attachment; filename="Boleto_Inter_%s.pdf"' % transaction.acquirer_reference)
+            ]
+            return request.make_response(pdf_content, headers)
+
+        except Exception as e:
+            _logger.exception("Erro ao gerar PDF do Boleto Inter via Controller")
+            return request.not_found()
+

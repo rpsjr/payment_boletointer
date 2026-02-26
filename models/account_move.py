@@ -324,6 +324,16 @@ class AccountMove(models.Model):
             for item in data:
                 print(item._emissao_data())
                 resposta = self.api.boleto_inclui(item._emissao_data())
+
+                if not resposta.get('pixCopiaECola') and resposta.get('codigoSolicitacao'):
+                    try:
+                        detalhe_completo = self.api.boleto_recupera(resposta['codigoSolicitacao'])
+                        if isinstance(detalhe_completo, dict) and 'pix' in detalhe_completo:
+                            resposta['pixCopiaECola'] = detalhe_completo['pix'].get('pixCopiaECola')
+                            resposta['txid'] = detalhe_completo['pix'].get('txid')
+                    except Exception as e:
+                        _logger.warning("Erro ao recuperar dados PIX do boleto Inter: %s", str(e))
+
             # o pacote python tem error handle que retorna para a aplicação
         return resposta
 
