@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <template id="portal_invoice_page_inherit" inherit_id="account.portal_invoice_page" name="Invoice Portal Boleto Inter">
+        <!-- Translate 'Due in X days' -->
+        <xpath expr="//*[contains(text(), 'Due in')]" position="replace">
+            <t t-set="days_due" t-value="(invoice.date_maturity - datetime.date.today()).days"/>
+            <t t-if="days_due &gt; 0">
+                <span class="badge badge-pill badge-info">
+                    <i class="fa fa-fw fa-clock-o"/> Vence em <t t-esc="days_due"/> <t t-if="days_due &gt; 1">dias</t><t t-else="">dia</t>
+                </span>
+            </t>
+        </xpath>
         <xpath expr="//div[@id='invoice_content']" position="inside">
             <t t-set="inter_txs" t-value="invoice.transaction_ids.filtered(lambda t: t.acquirer_id.provider == 'apiboletointer' and t.state not in ['cancel', 'error', 'done'])"/>
             <t t-if="inter_txs">
@@ -28,7 +37,7 @@
                                         <span class="font-weight-bold text-dark small">Vencimento: <span t-field="tx.date_maturity"/></span>
                                         <span class="h5 font-weight-bold text-primary mb-0"><span t-field="tx.amount" t-options='{"widget": "monetary", "display_currency": tx.currency_id}'/></span>
                                     </div>
-                                    
+
                                     <t t-if="tx.boleto_pix_code">
                                         <div class="input-group input-group-sm">
                                             <input type="text" class="form-control form-control-sm border-right-0 bg-light" t-att-value="tx.boleto_pix_code" readonly="readonly" t-att-id="'pix-code-%s' % tx.id" style="font-family: monospace; font-size: 0.7rem;"/>
@@ -39,7 +48,7 @@
                                             </div>
                                         </div>
                                     </t>
-                                    
+
                                     <div class="mt-2 d-flex justify-content-between align-items-center">
                                         <small class="text-muted" t-if="tx.acquirer_reference">Ref: <span t-field="tx.acquirer_reference"/></small>
                                         <a t-if="tx.acquirer_reference" class="btn btn-link btn-sm p-0 text-info font-weight-bold" t-att-href="'/boleto/inter/pdf/%s' % tx.id" target="_blank" style="font-size: 0.75rem;">
@@ -59,7 +68,7 @@
                         if (pixBox &amp;&amp; container) {
                             container.prepend(pixBox);
                         }
-                        
+
                         // Ocultar mensagem padrão de "aguardando aprovação" do Odoo
                         // Esta mensagem costuma confundir o usuário em boletos/pix
                         var alerts = document.querySelectorAll('.alert.alert-info, .alert.alert-warning');

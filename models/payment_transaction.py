@@ -169,7 +169,10 @@ class PaymentTransaction(models.Model):
                 data = self.api.boleto_recupera(self.acquirer_reference)
             elif hasattr(self.api, '_find_uuid_from_code'):
                 uuid = self.api._find_uuid_from_code(self.acquirer_reference)
-                data = self.api.boleto_recupera(uuid)
+                if uuid:
+                    data = self.api.boleto_recupera(uuid)
+                else:
+                    data = self.api.boleto_recupera(self.acquirer_reference)
             else:
                 data = self.api.boleto_recupera(self.acquirer_reference)
 
