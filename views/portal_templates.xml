@@ -1,15 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <template id="portal_invoice_page_inherit" inherit_id="account.portal_invoice_page" name="Invoice Portal Boleto Inter">
-        <!-- Translate 'Due in X days' -->
-        <xpath expr="//span[contains(@class, 'badge-info')]/i[contains(@class, 'fa-clock-o')]/.." position="replace">
-            <t t-set="days_due" t-value="((invoice.invoice_date_due or invoice.date) - datetime.date.today()).days"/>
-            <t t-if="days_due &gt; 0">
-                <span class="badge badge-pill badge-info">
-                    <i class="fa fa-fw fa-clock-o"/> Vence em <t t-esc="days_due"/> <t t-if="days_due &gt; 1">dias</t><t t-else="">dia</t>
-                </span>
-            </t>
-        </xpath>
         <xpath expr="//div[@id='invoice_content']" position="inside">
             <t t-set="inter_txs" t-value="invoice.transaction_ids.filtered(lambda t: t.acquirer_id.provider == 'apiboletointer' and t.state not in ['cancel', 'error', 'done'])"/>
             <t t-if="inter_txs">
