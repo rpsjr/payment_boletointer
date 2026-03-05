@@ -4,7 +4,7 @@
 
 import base64
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 import json
 import re
 
@@ -167,14 +167,42 @@ class PaymentTransaction(models.Model):
             )
             if re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', self.acquirer_reference):
                 data = self.api.boleto_recupera(self.acquirer_reference)
-            elif hasattr(self.api, '_find_uuid_from_code'):
-                uuid = self.api._find_uuid_from_code(self.acquirer_reference)
+            else:
+                uuid = None
+                if hasattr(self.api, 'boleto_consulta'):
+                    try:
+                        data_base = self.date_maturity or (self.create_date.date() if self.create_date else datetime.now().date())
+                        data_inicial = (data_base - timedelta(days=180)).strftime("%Y-%m-%d")
+                        data_final = (data_base + timedelta(days=180)).strftime("%Y-%m-%d")
+
+                        boletos = self.api.boleto_consulta(
+                            data_inicial=data_inicial,
+                            data_final=data_final,
+                            filtrar_data_por="VENCIMENTO",
+                            nosso_numero=self.acquirer_reference
+                        )
+                        if isinstance(boletos, dict) and 'content' in boletos:
+                            for boleto in boletos['content']:
+                                if boleto.get('nossoNumero') == self.acquirer_reference:
+                                    uuid = boleto.get('codigoSolicitacao')
+                                    break
+                    except Exception as e:
+                        _logger.warning("Erro ao consultar boleto por data: %s", str(e))
+
                 if uuid:
                     data = self.api.boleto_recupera(uuid)
+                elif hasattr(self.api, '_find_uuid_from_code'):
+                    try:
+                        uuid = self.api._find_uuid_from_code(self.acquirer_reference)
+                        if uuid:
+                            data = self.api.boleto_recupera(uuid)
+                        else:
+                            data = self.api.boleto_recupera(self.acquirer_reference)
+                    except Exception as e:
+                        _logger.error("Erro ao buscar UUID pelo codigo: %s", str(e))
+                        data = self.api.boleto_recupera(self.acquirer_reference)
                 else:
                     data = self.api.boleto_recupera(self.acquirer_reference)
-            else:
-                data = self.api.boleto_recupera(self.acquirer_reference)
 
         # EMABERTO, BAIXADO e VENCIDO e PAGO
         if "errors" in data or not data:
