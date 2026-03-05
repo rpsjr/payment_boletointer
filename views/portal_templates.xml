@@ -2,8 +2,8 @@
 <odoo>
     <template id="portal_invoice_page_inherit" inherit_id="account.portal_invoice_page" name="Invoice Portal Boleto Inter">
         <!-- Translate 'Due in X days' -->
-        <xpath expr="//*[contains(text(), 'Due in')]" position="replace">
-            <t t-set="days_due" t-value="(invoice.date_maturity - datetime.date.today()).days"/>
+        <xpath expr="//span[contains(@class, 'badge-info')]/i[contains(@class, 'fa-clock-o')]/.." position="replace">
+            <t t-set="days_due" t-value="((invoice.invoice_date_due or invoice.date) - datetime.date.today()).days"/>
             <t t-if="days_due &gt; 0">
                 <span class="badge badge-pill badge-info">
                     <i class="fa fa-fw fa-clock-o"/> Vence em <t t-esc="days_due"/> <t t-if="days_due &gt; 1">dias</t><t t-else="">dia</t>
