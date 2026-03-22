@@ -265,3 +265,79 @@ class PaymentTransaction(models.Model):
         self._set_transaction_cancel()
         if self.acquirer_id.provider == "apiboletointer":
             self.cancel_transaction_in_inter()
+
+    @api.model
+    def _link_orphaned_boletos_by_invoice(self):
+        """ Busca na API do Banco Inter boletos não vinculados baseando-se no nome da fatura (seuNumero) """
+        transactions = self.search([
+            ('acquirer_id.provider', '=', 'apiboletointer'),
+            ('acquirer_reference', 'in', [False, '']),
+            ('state', 'in', ['draft', 'pending']),
+        ])
+        
+        if not transactions:
+            return
+
+        payment_provider = self.env['payment.acquirer'].search([('provider', '=', 'apiboletointer')], limit=1)
+        if not payment_provider:
+            return
+
+        with ArquivoCertificado(payment_provider, "w") as (key, cert):
+            api_inter = ApiInter(
+                cert=(cert, key),
+                conta_corrente=(
+                    payment_provider.journal_id.bank_account_id.acc_number
+                    + payment_provider.journal_id.bank_account_id.acc_number_dig
+                ),
+                clientId=payment_provider.bank_inter_clientId,
+                clientSecret=payment_provider.bank_inter_clientSecret,
+            )
+
+            for tx in transactions:
+                # O seuNumero enviado pra Inter geralmente foi o move_name do moveline vinculado
+                move_name = tx.origin_move_line_id.move_name or (tx.invoice_ids and tx.invoice_ids[0].name)
+                if not move_name:
+                    continue
+                
+                # Buscar no banco no range da data de emissão/vencimento
+                data_base = tx.date_maturity or (tx.create_date.date() if tx.create_date else datetime.now().date())
+                data_inicial = (data_base - timedelta(days=15)).strftime("%Y-%m-%d")
+                data_final = (data_base + timedelta(days=15)).strftime("%Y-%m-%d")
+
+                try:
+                    boletos = api_inter.boleto_consulta(
+                        data_inicial=data_inicial,
+                        data_final=data_final,
+                        filtrar_data_por="VENCIMENTO"
+                    )
+
+                    encontrado = False
+                    if isinstance(boletos, dict) and 'content' in boletos:
+                        for boleto in boletos['content']:
+                            if boleto.get('seuNumero') == move_name:
+                                nosso_numero = boleto.get('nossoNumero')
+                                codigo_solicitacao = boleto.get('codigoSolicitacao')
+                                
+                                acquirer_ref = nosso_numero or codigo_solicitacao
+                                if acquirer_ref:
+                                    tx.write({
+                                        'acquirer_reference': acquirer_ref,
+                                    })
+                                    encontrado = True
+                                    _logger.info("Vinculada transacao %s ao boleto Inter %s via move_name %s", tx.id, acquirer_ref, move_name)
+                                    
+                                    # Aproveitar para já preencher o pix e atualizar status
+                                    try:
+                                        tx.action_verify_transaction()
+                                    except Exception as e_verify:
+                                        _logger.warning("Falha na varredura extra após vinculação: %s", str(e_verify))
+                                    self.env.cr.commit()
+                                    break
+                                    
+                    if not encontrado:
+                        _logger.info("Nenhum boleto encontrado na API Inter para a transacao Odoo %s (fatura %s)", tx.id, move_name)
+
+                except Exception as e:
+                    _logger.error("Erro ao buscar boleto órfão %s na api_inter: %s", tx.id, str(e))
+                    self.env.cr.rollback()
+                    continue

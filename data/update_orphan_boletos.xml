@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <function model="payment.transaction" name="_link_orphaned_boletos_by_invoice"/>
+    </data>
+</odoo>
