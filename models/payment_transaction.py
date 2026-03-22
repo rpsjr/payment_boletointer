@@ -265,17 +265,3 @@ class PaymentTransaction(models.Model):
         self._set_transaction_cancel()
         if self.acquirer_id.provider == "apiboletointer":
             self.cancel_transaction_in_inter()
-
-    @api.model
-    def _update_old_transactions_pix(self):
-        """ Busca e atualiza boletos antigos sem PIX no update do módulo """
-        transactions = self.search([
-            ('acquirer_id.provider', '=', 'apiboletointer'),
-            ('boleto_pix_code', '=', False),
-            ('state', 'in', ['draft', 'pending', 'authorized'])
-        ], limit=50)
-        for tx in transactions:
-            try:
-                tx.action_verify_transaction()
-            except Exception:
-                continue
