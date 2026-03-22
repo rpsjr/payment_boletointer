@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="action_link_orphaned_boletos_inter" model="ir.actions.server">
+            <field name="name">Vincular/Recuperar Boletos Inter Faltantes</field>
+            <field name="model_id" ref="payment.model_payment_transaction"/>
+            <field name="binding_model_id" ref="payment.model_payment_transaction"/>
+            <field name="state">code</field>
+            <field name="code">
+                if records:
+                    records._link_orphaned_boletos_by_invoice()
+            </field>
+        </record>
+    </data>
+</odoo>
