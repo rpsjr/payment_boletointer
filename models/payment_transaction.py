@@ -306,8 +306,7 @@ class PaymentTransaction(models.Model):
                 data_inicial = (data_base - timedelta(days=15)).strftime("%Y-%m-%d")
                 data_final = (data_base + timedelta(days=15)).strftime("%Y-%m-%d")
                 
-                _logger.info("
-========== DEBUG Odoo TX %s ==========", tx.id)
+                _logger.info("========== DEBUG Odoo TX %s ==========", tx.id)
                 _logger.info("Odoo Espera: move_name='%s', amount=%s, vencimento='%s'", move_name, tx.amount, tx.date_maturity)
 
                 try:
