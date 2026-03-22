@@ -329,35 +329,45 @@ class PaymentTransaction(models.Model):
                                 filtrar_data_por="VENCIMENTO"
                             )
                         
-                        if not isinstance(boletos, dict) or 'content' not in boletos or not boletos['content']:
-                            _logger.info("API Inter retornou vazio para pagina %s: %s", numero_pagina, boletos)
+                        lista_boletos = boletos.get('cobrancas') or boletos.get('content') or []
+                        if not isinstance(boletos, dict) or not lista_boletos:
+                            _logger.info("API Inter retornou vazio para pagina %s", numero_pagina)
                             break
                         
-                        _logger.info("Recebidos %s boletos na pagina %s para a TX %s", len(boletos['content']), numero_pagina, tx.id)
+                        _logger.info("Recebidos %s boletos na pagina %s para a TX %s", len(lista_boletos), numero_pagina, tx.id)
                         
-                        for boleto in boletos['content']:
-                            _logger.info("Boleto API Inter -> seuNumero='%s', valorNominal=%s, valor=%s, dataVencimento='%s'", 
-                                         boleto.get('seuNumero'), boleto.get('valorNominal'), boleto.get('valor'), boleto.get('dataVencimento'))
+                        for item in lista_boletos:
+                            # Suporte para API V2 ('cobrancas' com dict aninhado) e V1 ('content' plano)
+                            if 'cobranca' in item:
+                                obj_cobranca = item.get('cobranca', {})
+                                obj_boleto = item.get('boleto', {})
+                                
+                                seu_numero = obj_cobranca.get('seuNumero')
+                                valor_nominal_str = obj_cobranca.get('valorNominal', obj_cobranca.get('valor', 0))
+                                dat_vencimento = obj_cobranca.get('dataVencimento')
+                                nosso_numero = obj_boleto.get('nossoNumero') or obj_cobranca.get('nossoNumero')
+                                cod_solicitacao = obj_cobranca.get('codigoSolicitacao')
+                            else:
+                                seu_numero = item.get('seuNumero')
+                                valor_nominal_str = item.get('valorNominal', item.get('valor', 0))
+                                dat_vencimento = item.get('dataVencimento')
+                                nosso_numero = item.get('nossoNumero')
+                                cod_solicitacao = item.get('codigoSolicitacao')
 
-                            # Comparamos os 3 eixos de validacao (seuNumero, valor e data de Vencimento)
-                            if boleto.get('seuNumero') == move_name:
-                                try:
-                                    inter_val = float(boleto.get('valorNominal', boleto.get('valor', 0)))
-                                except (ValueError, TypeError):
-                                    inter_val = 0.0
-                                    
-                                vencimento = boleto.get('dataVencimento')
-                                tx_amount = float(tx.amount)
-                                tx_vencimento = tx.date_maturity.strftime('%Y-%m-%d') if tx.date_maturity else None
+                            try:
+                                inter_val = float(valor_nominal_str)
+                            except (ValueError, TypeError):
+                                inter_val = 0.0
                                 
-                                _logger.info("Analisando Boleto Inter: seuNumero='%s', valor=%s, vencimento='%s' vs Odoo TX: valor=%s, vencimento='%s'", 
-                                              boleto.get('seuNumero'), inter_val, vencimento, tx_amount, tx_vencimento)
-                                
-                                # Fator 0.01 de tolerância flutuante
-                                if abs(inter_val - tx_amount) < 0.01 and vencimento == tx_vencimento:
-                                    nosso_numero = boleto.get('nossoNumero')
-                                    codigo_solicitacao = boleto.get('codigoSolicitacao')
-                                    acquirer_ref = nosso_numero or codigo_solicitacao
+                            tx_amount = float(tx.amount)
+                            tx_vencimento = tx.date_maturity.strftime('%Y-%m-%d') if tx.date_maturity else None
+                            
+                            # Fator 0.01 de tolerância flutuante
+                            if abs(inter_val - tx_amount) < 0.01 and dat_vencimento == tx_vencimento:
+                                # Comparamos os 3 eixos de validacao ou pelo menos fallback para amount e data
+                                # No caso desta transação, nós sabemos que o 'seuNumero' é idêntico.
+                                if seu_numero == move_name:
+                                    acquirer_ref = nosso_numero or cod_solicitacao
                                     
                                     if acquirer_ref:
                                         tx.write({
@@ -376,8 +386,8 @@ class PaymentTransaction(models.Model):
                         if encontrado:
                             break
                             
-                        # Checamos se existe uma flag last na paginação
-                        if boletos.get('last') is True:
+                        # Checamos se existe uma flag last na paginação ou ultimaPagina no V2
+                        if boletos.get('last') is True or boletos.get('ultimaPagina') is True:
                             break
                             
                         numero_pagina += 1
