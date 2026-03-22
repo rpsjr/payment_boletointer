@@ -265,18 +265,6 @@ class PaymentTransaction(models.Model):
         if self.acquirer_id.provider == "apiboletointer":
             self.cancel_transaction_in_inter()
 
-    def _get_api_inter_instance(self, payment_provider):
-        with ArquivoCertificado(payment_provider, "w") as (key, cert):
-            return ApiInter(
-                cert=(cert, key),
-                conta_corrente=(
-                    payment_provider.journal_id.bank_account_id.acc_number
-                    + payment_provider.journal_id.bank_account_id.acc_number_dig
-                ),
-                clientId=payment_provider.bank_inter_clientId,
-                clientSecret=payment_provider.bank_inter_clientSecret,
-            )
-
     @api.model
     def _link_orphaned_boletos_by_invoice(self):
         """ Busca na API do Banco Inter boletos não vinculados baseando-se no nome, quantia e data de vencimento """
@@ -298,88 +286,94 @@ class PaymentTransaction(models.Model):
         if not payment_provider:
             return
 
-        api_inter = self._get_api_inter_instance(payment_provider)
+        with ArquivoCertificado(payment_provider, "w") as (key, cert):
+            api_inter = ApiInter(
+                cert=(cert, key),
+                conta_corrente=(
+                    payment_provider.journal_id.bank_account_id.acc_number
+                    + payment_provider.journal_id.bank_account_id.acc_number_dig
+                ),
+                clientId=payment_provider.bank_inter_clientId,
+                clientSecret=payment_provider.bank_inter_clientSecret,
+            )
 
-        for tx in transactions:
-            move_name = tx.origin_move_line_id.move_name or (tx.invoice_ids and tx.invoice_ids[0].name)
-            if not move_name:
-                continue
-            
-            data_base = tx.date_maturity or (tx.create_date.date() if tx.create_date else datetime.now().date())
-            data_inicial = (data_base - timedelta(days=15)).strftime("%Y-%m-%d")
-            data_final = (data_base + timedelta(days=15)).strftime("%Y-%m-%d")
-
-            try:
-                numero_pagina = 0
-                encontrado = False
-
-                while not encontrado:
-                    try:
-                        boletos = api_inter.boleto_consulta(
-                            data_inicial=data_inicial,
-                            data_final=data_final,
-                            filtrar_data_por="VENCIMENTO",
-                            numero_pagina=numero_pagina
-                        )
-                    except TypeError:
-                        # Se a implementação da lib não tem suporte nativo a numero_pagina no kwargs
-                        boletos = api_inter.boleto_consulta(
-                            data_inicial=data_inicial,
-                            data_final=data_final,
-                            filtrar_data_por="VENCIMENTO"
-                        )
-                    
-                    if not isinstance(boletos, dict) or 'content' not in boletos or not boletos['content']:
-                        break
-                    
-                    for boleto in boletos['content']:
-                        # Comparamos os 3 eixos de validacao (seuNumero, valor e data de Vencimento)
-                        if boleto.get('seuNumero') == move_name:
-                            try:
-                                inter_val = float(boleto.get('valorNominal', 0))
-                            except ValueError:
-                                inter_val = 0.0
-                                
-                            vencimento = boleto.get('dataVencimento')
-                            tx_amount = float(tx.amount)
-                            tx_vencimento = tx.date_maturity.strftime('%Y-%m-%d') if tx.date_maturity else None
-                            
-                            # Log opcional para debug visível apenas na inspeção
-                            # _logger.info(f"Testando {vencimento} vs {tx_vencimento} e {inter_val} vs {tx_amount}")
-                            
-                            # Fator 0.01 de tolerância flutuante
-                            if abs(inter_val - tx_amount) < 0.01 and vencimento == tx_vencimento:
-                                nosso_numero = boleto.get('nossoNumero')
-                                codigo_solicitacao = boleto.get('codigoSolicitacao')
-                                acquirer_ref = nosso_numero or codigo_solicitacao
-                                
-                                if acquirer_ref:
-                                    tx.write({
-                                        'acquirer_reference': acquirer_ref,
-                                    })
-                                    encontrado = True
-                                    _logger.info("Transação %s vinculada com sucesso ao Inter %s", tx.id, acquirer_ref)
-                                    
-                                    try:
-                                        tx.action_verify_transaction()
-                                    except Exception as e_verify:
-                                        _logger.warning("Falha na varredura extra: %s", str(e_verify))
-                                    self.env.cr.commit()
-                                    break
-                    
-                    if encontrado:
-                        break
-                        
-                    # Checamos se existe uma flag last na paginação
-                    if boletos.get('last') is True:
-                        break
-                        
-                    numero_pagina += 1
+            for tx in transactions:
+                move_name = tx.origin_move_line_id.move_name or (tx.invoice_ids and tx.invoice_ids[0].name)
+                if not move_name:
+                    continue
                 
-                if not encontrado:
-                    _logger.info("Nenhum boleto encontrado batendo as três condições para a transacao Odoo %s", tx.id)
+                data_base = tx.date_maturity or (tx.create_date.date() if tx.create_date else datetime.now().date())
+                data_inicial = (data_base - timedelta(days=15)).strftime("%Y-%m-%d")
+                data_final = (data_base + timedelta(days=15)).strftime("%Y-%m-%d")
 
-            except Exception as e:
-                _logger.error("Erro ao buscar boleto órfão %s na api_inter: %s", tx.id, str(e))
-                self.env.cr.rollback()
-                continue
+                try:
+                    numero_pagina = 0
+                    encontrado = False
+
+                    while not encontrado:
+                        try:
+                            boletos = api_inter.boleto_consulta(
+                                data_inicial=data_inicial,
+                                data_final=data_final,
+                                filtrar_data_por="VENCIMENTO",
+                                numero_pagina=numero_pagina
+                            )
+                        except TypeError:
+                            # Se a implementação da lib não tem suporte nativo a numero_pagina no kwargs
+                            boletos = api_inter.boleto_consulta(
+                                data_inicial=data_inicial,
+                                data_final=data_final,
+                                filtrar_data_por="VENCIMENTO"
+                            )
+                        
+                        if not isinstance(boletos, dict) or 'content' not in boletos or not boletos['content']:
+                            break
+                        
+                        for boleto in boletos['content']:
+                            # Comparamos os 3 eixos de validacao (seuNumero, valor e data de Vencimento)
+                            if boleto.get('seuNumero') == move_name:
+                                try:
+                                    inter_val = float(boleto.get('valorNominal', 0))
+                                except ValueError:
+                                    inter_val = 0.0
+                                    
+                                vencimento = boleto.get('dataVencimento')
+                                tx_amount = float(tx.amount)
+                                tx_vencimento = tx.date_maturity.strftime('%Y-%m-%d') if tx.date_maturity else None
+                                
+                                # Fator 0.01 de tolerância flutuante
+                                if abs(inter_val - tx_amount) < 0.01 and vencimento == tx_vencimento:
+                                    nosso_numero = boleto.get('nossoNumero')
+                                    codigo_solicitacao = boleto.get('codigoSolicitacao')
+                                    acquirer_ref = nosso_numero or codigo_solicitacao
+                                    
+                                    if acquirer_ref:
+                                        tx.write({
+                                            'acquirer_reference': acquirer_ref,
+                                        })
+                                        encontrado = True
+                                        _logger.info("Transação %s vinculada com sucesso ao Inter %s", tx.id, acquirer_ref)
+                                        
+                                        try:
+                                            tx.action_verify_transaction()
+                                        except Exception as e_verify:
+                                            _logger.warning("Falha na varredura extra: %s", str(e_verify))
+                                        self.env.cr.commit()
+                                        break
+                        
+                        if encontrado:
+                            break
+                            
+                        # Checamos se existe uma flag last na paginação
+                        if boletos.get('last') is True:
+                            break
+                            
+                        numero_pagina += 1
+                    
+                    if not encontrado:
+                        _logger.info("Nenhum boleto encontrado batendo as três condições para a transacao Odoo %s", tx.id)
+
+                except Exception as e:
+                    _logger.error("Erro ao buscar boleto órfão %s na api_inter: %s", tx.id, str(e))
+                    self.env.cr.rollback()
+                    continue
