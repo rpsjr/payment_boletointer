@@ -305,6 +305,10 @@ class PaymentTransaction(models.Model):
                 data_base = tx.date_maturity or (tx.create_date.date() if tx.create_date else datetime.now().date())
                 data_inicial = (data_base - timedelta(days=15)).strftime("%Y-%m-%d")
                 data_final = (data_base + timedelta(days=15)).strftime("%Y-%m-%d")
+                
+                _logger.info("
+========== DEBUG Odoo TX %s ==========", tx.id)
+                _logger.info("Odoo Espera: move_name='%s', amount=%s, vencimento='%s'", move_name, tx.amount, tx.date_maturity)
 
                 try:
                     numero_pagina = 0
@@ -327,19 +331,28 @@ class PaymentTransaction(models.Model):
                             )
                         
                         if not isinstance(boletos, dict) or 'content' not in boletos or not boletos['content']:
+                            _logger.info("API Inter retornou vazio para pagina %s: %s", numero_pagina, boletos)
                             break
                         
+                        _logger.info("Recebidos %s boletos na pagina %s para a TX %s", len(boletos['content']), numero_pagina, tx.id)
+                        
                         for boleto in boletos['content']:
+                            _logger.info("Boleto API Inter -> seuNumero='%s', valorNominal=%s, valor=%s, dataVencimento='%s'", 
+                                         boleto.get('seuNumero'), boleto.get('valorNominal'), boleto.get('valor'), boleto.get('dataVencimento'))
+
                             # Comparamos os 3 eixos de validacao (seuNumero, valor e data de Vencimento)
                             if boleto.get('seuNumero') == move_name:
                                 try:
-                                    inter_val = float(boleto.get('valorNominal', 0))
-                                except ValueError:
+                                    inter_val = float(boleto.get('valorNominal', boleto.get('valor', 0)))
+                                except (ValueError, TypeError):
                                     inter_val = 0.0
                                     
                                 vencimento = boleto.get('dataVencimento')
                                 tx_amount = float(tx.amount)
                                 tx_vencimento = tx.date_maturity.strftime('%Y-%m-%d') if tx.date_maturity else None
+                                
+                                _logger.info("Analisando Boleto Inter: seuNumero='%s', valor=%s, vencimento='%s' vs Odoo TX: valor=%s, vencimento='%s'", 
+                                              boleto.get('seuNumero'), inter_val, vencimento, tx_amount, tx_vencimento)
                                 
                                 # Fator 0.01 de tolerância flutuante
                                 if abs(inter_val - tx_amount) < 0.01 and vencimento == tx_vencimento:
