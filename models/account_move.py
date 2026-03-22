@@ -144,22 +144,37 @@ class AccountMove(models.Model):
             #    data['linhaDigitavel'] = 12345
             data = self._generate_bank_inter_boleto(moveline)
 
-            #catch error to-do
-            #if "errors" in data:
-            if 0:
-                if isinstance(data['errors'], str):
-                    raise UserError('Erro na integração com IUGU:\n%s' % data['errors'])
-
-                msg = "\n".join(
-                    ["A integração com IUGU retornou os seguintes erros"] +
-                    ["Field: %s %s" % (x[0], x[1][0])
-                        for x in data['errors'].items()])
-                raise UserError(msg)
+            if not data:
+                raise UserError("A API do Banco Inter não retornou nenhuma resposta.")
 
             # Safe extraction of nested data
             nosso_numero = data.get('nossoNumero')
             if not nosso_numero and 'boleto' in data:
                 nosso_numero = data['boleto'].get('nossoNumero')
+
+            codigo_solicitacao = data.get('codigoSolicitacao')
+
+            # Tratar erros retornados pela API do Banco Inter
+            if not nosso_numero and not codigo_solicitacao:
+                msg_erro = ""
+                if 'title' in data:
+                    msg_erro += data['title'] + '\n'
+                if 'detail' in data:
+                    msg_erro += data['detail'] + '\n'
+                if 'violacoes' in data and isinstance(data['violacoes'], list):
+                    for v in data['violacoes']:
+                        msg_erro += "- {}: {}\n".format(v.get('propriedade', ''), v.get('razao', ''))
+                if 'message' in data:
+                    msg_erro += data['message'] + '\n'
+                if 'error' in data:
+                    msg_erro += data['error'] + '\n'
+                if 'errors' in data:
+                    msg_erro += str(data['errors']) + '\n'
+                
+                if not msg_erro:
+                    msg_erro = "Erro desconhecido ao emitir boleto no Banco Inter: {}".format(data)
+                
+                raise UserError("Falha na emissão do Boleto Inter:\n{}".format(msg_erro))
 
             linha_digitavel = data.get('linhaDigitavel')
             if not linha_digitavel and 'boleto' in data:
@@ -170,9 +185,7 @@ class AccountMove(models.Model):
                 pix_copia_cola = data['pix'].get('pixCopiaECola')
 
             transaction.write({
-                #'acquirer_reference': data['id'],
-                'acquirer_reference': nosso_numero or '',
-                #'transaction_url': data['secure_url'],
+                'acquirer_reference': nosso_numero or codigo_solicitacao or '',
                 'boleto_pix_code': pix_copia_cola or '',
             })
             #transaction._set_transaction_pending()
