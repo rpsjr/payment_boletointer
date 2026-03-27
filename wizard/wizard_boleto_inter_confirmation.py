@@ -28,4 +28,4 @@ class WizardBoletoInterConfirmation(models.TransientModel):
         elif self.action_type == 'keep_old':
             move.boleto_inter_skip_generation = True
 
-        return move.with_context(skip_boleto_check=True).button_draft()
+        return move.with_context(skip_boleto_check=True).action_post()

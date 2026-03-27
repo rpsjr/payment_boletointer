@@ -4,7 +4,7 @@
 
 {
     'name': 'Cobrança Banco Inter',
-    'version': '13.0.2.10.0',
+    'version': '13.0.2.11.0',
     'category': 'Finance',
     'sequence': 5,
     'author': 'Trustcode, RPSJR',

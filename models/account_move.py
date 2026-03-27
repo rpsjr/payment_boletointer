@@ -208,16 +208,6 @@ class AccountMove(models.Model):
             item.send_information_to_iugu()
 
     def action_post(self):
-        self.validate_data_iugu()
-        result = super(AccountMove, self).action_post()
-        if not self.boleto_inter_skip_generation:
-            self.generate_payment_transactions()
-        else:
-            self.boleto_inter_skip_generation = False
-        #raise ValidationError('interrupção antes do post')
-        return result
-
-    def button_draft(self):
         if not self._context.get('skip_boleto_check'):
             for move in self:
                 # Check for active Inter transactions
@@ -231,6 +221,16 @@ class AccountMove(models.Model):
                         'target': 'new',
                         'context': {'default_move_id': move.id},
                     }
+        self.validate_data_iugu()
+        result = super(AccountMove, self).action_post()
+        if not self.boleto_inter_skip_generation:
+            self.generate_payment_transactions()
+        else:
+            self.boleto_inter_skip_generation = False
+        #raise ValidationError('interrupção antes do post')
+        return result
+
+    def button_draft(self):
         return super(AccountMove, self).button_draft()
 
     def button_cancel(self):

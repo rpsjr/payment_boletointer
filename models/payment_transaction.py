@@ -10,7 +10,7 @@ import re
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, UserError
 from time import sleep
 
 
@@ -257,7 +257,27 @@ class PaymentTransaction(models.Model):
                 clientId=payment_provider.bank_inter_clientId,
                 clientSecret=payment_provider.bank_inter_clientSecret,
             )
-            data = self.api.boleto_baixa(self.acquirer_reference, "SUBSTITUICAO")
+            try:
+                data = self.api.boleto_baixa(self.acquirer_reference, "SUBSTITUICAO")
+                # Se a API retornar um dict com erro detalhado ao invés de exceção
+                if isinstance(data, dict):
+                    error_msg = str(data.get('title', '')) + str(data.get('detail', '')) + str(data.get('message', '')) + str(data.get('violacoes', ''))
+                    if error_msg:
+                        if 'status' in error_msg.lower() or 'baixada' in error_msg.lower() or 'cancelad' in error_msg.lower() or 'inválida' in error_msg.lower():
+                            if self.origin_move_line_id and self.origin_move_line_id.move_id:
+                                self.origin_move_line_id.move_id.message_post(body="Aviso Banco Inter: O boleto %s já se encontrava baixado ou cancelado. Detalhes: %s" % (self.acquirer_reference, error_msg))
+                            return
+                        else:
+                            raise UserError("Erro ao cancelar boleto no Banco Inter: %s" % error_msg)
+            except UserError:
+                raise
+            except Exception as e:
+                msg = str(e)
+                if 'status' in msg.lower() or 'baixada' in msg.lower() or 'cancelad' in msg.lower() or 'inválida' in msg.lower():
+                    if self.origin_move_line_id and self.origin_move_line_id.move_id:
+                        self.origin_move_line_id.move_id.message_post(body="Aviso Banco Inter: O boleto %s já se encontrava baixado ou cancelado. Detalhes: %s" % (self.acquirer_reference, msg))
+                else:
+                    raise UserError("Erro comunicação com Banco Inter ao cancelar o boleto: %s" % msg)
 
 
     def action_cancel_transaction(self):
