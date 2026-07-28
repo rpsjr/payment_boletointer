@@ -293,17 +293,23 @@ class AccountMove(models.Model):
         multa_valor = invoice_payment_term_id.fine_value if (invoice_payment_term_id and codigoMulta == 'VALORFIXO') else 0.0
         multa_taxa  = invoice_payment_term_id.fine_value if (invoice_payment_term_id and codigoMulta == 'PERCENTUAL') else 0.0
 
-        # Se for sem multa (NAOTEMMULTA), enviamos PERCENTUAL com taxa 0.0 para a API v3 do Banco Inter
-        # evitar a rejeicao "Nao foi possivel converter o valor. propriedade: multa".
+        # Se não houver multa ou se a taxa/valor for <= 0, manter NAOTEMMULTA com taxa e valor 0.0
+        if codigoMulta == 'PERCENTUAL' and multa_taxa <= 0:
+            codigoMulta = 'NAOTEMMULTA'
+        elif codigoMulta == 'VALORFIXO' and multa_valor <= 0:
+            codigoMulta = 'NAOTEMMULTA'
+
         if codigoMulta == 'NAOTEMMULTA':
-            codigoMulta = 'PERCENTUAL'
             multa_taxa = 0.0
             multa_valor = 0.0
 
-        # Se for sem mora (ISENTO), enviamos TAXAMENSAL com taxa 0.0 para a API v3 do Banco Inter
-        # evitar a rejeicao "Nao foi possivel converter o valor. propriedade: mora".
+        # Se não houver juros/mora ou se a taxa/valor for <= 0, manter ISENTO com taxa e valor 0.0
+        if codigoMora == 'TAXAMENSAL' and mora_taxa <= 0:
+            codigoMora = 'ISENTO'
+        elif codigoMora == 'VALORDIA' and mora_valor <= 0:
+            codigoMora = 'ISENTO'
+
         if codigoMora == 'ISENTO':
-            codigoMora = 'TAXAMENSAL'
             mora_taxa = 0.0
             mora_valor = 0.0
 
