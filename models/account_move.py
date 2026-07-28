@@ -316,12 +316,14 @@ class AccountMove(models.Model):
         data_mm = (moveline.date_maturity + timedelta(days=1)).strftime('%Y-%m-%d') if moveline.date_maturity else ''
 
         mora = dict(
+            codigo=codigoMora,
             codigoMora=codigoMora,
             valor=mora_valor,
             taxa=mora_taxa,
             data=data_mm if codigoMora != 'ISENTO' else ''
         )
         multa = dict(
+            codigo=codigoMulta,
             codigoMulta=codigoMulta,
             valor=multa_valor,
             taxa=multa_taxa,
