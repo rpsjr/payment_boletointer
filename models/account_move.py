@@ -293,6 +293,13 @@ class AccountMove(models.Model):
         multa_valor = invoice_payment_term_id.fine_value if (invoice_payment_term_id and codigoMulta == 'VALORFIXO') else 0.0
         multa_taxa  = invoice_payment_term_id.fine_value if (invoice_payment_term_id and codigoMulta == 'PERCENTUAL') else 0.0
 
+        # Se for sem multa (NAOTEMMULTA), enviamos PERCENTUAL com taxa 0.0 para a API v3 do Banco Inter
+        # evitar a rejeicao "Nao foi possivel converter o valor. propriedade: multa".
+        if codigoMulta == 'NAOTEMMULTA':
+            codigoMulta = 'PERCENTUAL'
+            multa_taxa = 0.0
+            multa_valor = 0.0
+
         data_mm = (moveline.date_maturity + timedelta(days=1)).strftime('%Y-%m-%d') if moveline.date_maturity else ''
 
         mora = dict(
@@ -305,7 +312,7 @@ class AccountMove(models.Model):
             codigoMulta=codigoMulta,
             valor=multa_valor,
             taxa=multa_taxa,
-            data=data_mm if codigoMulta != 'NAOTEMMULTA' else ''
+            data=data_mm
         )
 
         slip = BoletoInter(
