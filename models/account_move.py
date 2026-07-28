@@ -319,13 +319,13 @@ class AccountMove(models.Model):
             codigoMora=codigoMora,
             valor=mora_valor,
             taxa=mora_taxa,
-            data=data_mm
+            data=data_mm if codigoMora != 'ISENTO' else ''
         )
         multa = dict(
             codigoMulta=codigoMulta,
             valor=multa_valor,
             taxa=multa_taxa,
-            data=data_mm
+            data=data_mm if codigoMulta != 'NAOTEMMULTA' else ''
         )
 
         slip = BoletoInter(
