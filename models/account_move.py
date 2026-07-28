@@ -283,27 +283,30 @@ class AccountMove(models.Model):
             )
         )
         #raise ValidationError(f"{moveline.partner_id.l10n_br_legal_name} {moveline.partner_id.l10n_br_cnpj_cpf} {moveline.partner_id.email} {moveline.partner_id.company_type} {moveline.partner_id.phone} {moveline.partner_id.street} {moveline.partner_id.l10n_br_district} {moveline.partner_id.city_id.name} {moveline.partner_id.state_id.code} {moveline.partner_id.zip} {moveline.partner_id.l10n_br_number} ")
-        _instructions = str(self.invoice_payment_term_id.note).split('\n')
+        _instructions = str(self.invoice_payment_term_id.note).split('\n') if self.invoice_payment_term_id.note else []
         invoice_payment_term_id = self.invoice_payment_term_id
-        codigoMora = invoice_payment_term_id.interst_mode
-        mora_valor = invoice_payment_term_id.interst_value if codigoMora == 'VALORDIA' else 0
-        mora_taxa  = invoice_payment_term_id.interst_value if codigoMora == 'TAXAMENSAL' else 0
-        data_mm = (moveline.date_maturity +  timedelta(days=1)).strftime('%Y-%m-%d') if not codigoMora == 'ISENTO' else ''
-        codigoMulta = invoice_payment_term_id.fine_mode
-        multa_valor = invoice_payment_term_id.fine_value if codigoMulta == 'VALORFIXO' else 0
-        multa_taxa  = invoice_payment_term_id.fine_value if codigoMulta == 'PERCENTUAL' else 0
+        codigoMora = invoice_payment_term_id.interst_mode if invoice_payment_term_id and invoice_payment_term_id.interst_mode else 'ISENTO'
+        mora_valor = invoice_payment_term_id.interst_value if (invoice_payment_term_id and codigoMora == 'VALORDIA') else 0.0
+        mora_taxa  = invoice_payment_term_id.interst_value if (invoice_payment_term_id and codigoMora == 'TAXAMENSAL') else 0.0
+        
+        codigoMulta = invoice_payment_term_id.fine_mode if invoice_payment_term_id and invoice_payment_term_id.fine_mode else 'NAOTEMMULTA'
+        multa_valor = invoice_payment_term_id.fine_value if (invoice_payment_term_id and codigoMulta == 'VALORFIXO') else 0.0
+        multa_taxa  = invoice_payment_term_id.fine_value if (invoice_payment_term_id and codigoMulta == 'PERCENTUAL') else 0.0
+
+        data_mm = (moveline.date_maturity + timedelta(days=1)).strftime('%Y-%m-%d') if moveline.date_maturity else ''
+
         mora = dict(
             codigoMora=codigoMora,
             valor=mora_valor,
             taxa=mora_taxa,
-            data=data_mm
-            )
+            data=data_mm if codigoMora != 'ISENTO' else ''
+        )
         multa = dict(
             codigoMulta=codigoMulta,
             valor=multa_valor,
             taxa=multa_taxa,
-            data=data_mm
-            )
+            data=data_mm if codigoMulta != 'NAOTEMMULTA' else ''
+        )
 
         slip = BoletoInter(
             sender=myself,
