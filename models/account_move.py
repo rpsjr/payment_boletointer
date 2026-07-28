@@ -365,7 +365,7 @@ class AccountMove(models.Model):
                     if isinstance(payload.get('multa'), dict):
                         m_code = payload['multa'].get('codigo') or payload['multa'].get('codigoMulta') or 'NAOTEMMULTA'
                         if m_code in ('NAOTEMMULTA', 'ISENTO', 'NAO_TEM_MULTA'):
-                            payload['multa'] = {'codigo': 'ISENTO', 'taxa': 0.0, 'valor': 0.0}
+                            payload['multa'] = {'codigo': 'NAO_TEM_MULTA', 'taxa': 0.0, 'valor': 0.0}
                         elif m_code == 'PERCENTUAL':
                             payload['multa'] = {'codigo': 'PERCENTUAL', 'taxa': float(payload['multa'].get('taxa') or 0.0), 'valor': 0.0, 'data': payload['multa'].get('data', '')}
                         elif m_code == 'VALORFIXO':
