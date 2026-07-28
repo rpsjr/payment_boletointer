@@ -300,13 +300,20 @@ class AccountMove(models.Model):
             multa_taxa = 0.0
             multa_valor = 0.0
 
+        # Se for sem mora (ISENTO), enviamos TAXAMENSAL com taxa 0.0 para a API v3 do Banco Inter
+        # evitar a rejeicao "Nao foi possivel converter o valor. propriedade: mora".
+        if codigoMora == 'ISENTO':
+            codigoMora = 'TAXAMENSAL'
+            mora_taxa = 0.0
+            mora_valor = 0.0
+
         data_mm = (moveline.date_maturity + timedelta(days=1)).strftime('%Y-%m-%d') if moveline.date_maturity else ''
 
         mora = dict(
             codigoMora=codigoMora,
             valor=mora_valor,
             taxa=mora_taxa,
-            data=data_mm if codigoMora != 'ISENTO' else ''
+            data=data_mm
         )
         multa = dict(
             codigoMulta=codigoMulta,
