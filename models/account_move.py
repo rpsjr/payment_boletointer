@@ -346,7 +346,27 @@ class AccountMove(models.Model):
             data = self._generate_bank_inter_boleto_data(moveline)
             for item in data:
                 print(item._emissao_data())
-                resposta = self.api.boleto_inclui(item._emissao_data())
+                try:
+                    resposta = self.api.boleto_inclui(item._emissao_data())
+                except Exception as e:
+                    msg = str(e)
+                    try:
+                        import json
+                        if hasattr(e, 'args') and e.args and isinstance(e.args, (list, tuple)):
+                            first_arg = e.args[0]
+                            if isinstance(first_arg, str) and first_arg.startswith('{'):
+                                err_json = json.loads(first_arg)
+                                if isinstance(err_json, dict):
+                                    if 'violacoes' in err_json:
+                                        violacoes_msgs = [f"- {v.get('propriedade', '')}: {v.get('razao', '')} (Valor: {v.get('valor', '')})" for v in err_json['violacoes']]
+                                        msg = f"{err_json.get('detail', 'Erro de validação no Banco Inter')}:\n" + "\n".join(violacoes_msgs)
+                                    elif 'detail' in err_json:
+                                        msg = err_json['detail']
+                                    elif 'title' in err_json:
+                                        msg = err_json['title']
+                    except Exception:
+                        pass
+                    raise UserError(_("Erro ao emitir boleto no Banco Inter para %s:\n%s") % (moveline.partner_id.name, msg))
 
                 if not resposta.get('pixCopiaECola') and resposta.get('codigoSolicitacao'):
                     try:
