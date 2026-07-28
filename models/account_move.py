@@ -360,9 +360,28 @@ class AccountMove(models.Model):
             )
             data = self._generate_bank_inter_boleto_data(moveline)
             for item in data:
-                print(item._emissao_data())
+                payload = item._emissao_data()
+                if isinstance(payload, dict):
+                    if isinstance(payload.get('multa'), dict):
+                        m_code = payload['multa'].get('codigo') or payload['multa'].get('codigoMulta') or 'NAOTEMMULTA'
+                        if m_code == 'NAOTEMMULTA':
+                            payload['multa'] = {'codigo': 'NAOTEMMULTA', 'taxa': 0.0, 'valor': 0.0}
+                        elif m_code == 'PERCENTUAL':
+                            payload['multa'] = {'codigo': 'PERCENTUAL', 'taxa': float(payload['multa'].get('taxa') or 0.0), 'valor': 0.0, 'data': payload['multa'].get('data', '')}
+                        elif m_code == 'VALORFIXO':
+                            payload['multa'] = {'codigo': 'VALORFIXO', 'valor': float(payload['multa'].get('valor') or 0.0), 'taxa': 0.0, 'data': payload['multa'].get('data', '')}
+
+                    if isinstance(payload.get('mora'), dict):
+                        mr_code = payload['mora'].get('codigo') or payload['mora'].get('codigoMora') or 'ISENTO'
+                        if mr_code == 'ISENTO':
+                            payload['mora'] = {'codigo': 'ISENTO', 'taxa': 0.0, 'valor': 0.0}
+                        elif mr_code == 'TAXAMENSAL':
+                            payload['mora'] = {'codigo': 'TAXAMENSAL', 'taxa': float(payload['mora'].get('taxa') or 0.0), 'valor': 0.0, 'data': payload['mora'].get('data', '')}
+                        elif mr_code == 'VALORDIA':
+                            payload['mora'] = {'codigo': 'VALORDIA', 'valor': float(payload['mora'].get('valor') or 0.0), 'taxa': 0.0, 'data': payload['mora'].get('data', '')}
+
                 try:
-                    resposta = self.api.boleto_inclui(item._emissao_data())
+                    resposta = self.api.boleto_inclui(payload)
                 except Exception as e:
                     msg = str(e)
                     try:
